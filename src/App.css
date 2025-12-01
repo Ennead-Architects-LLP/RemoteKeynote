@@ -1,0 +1,150 @@
+.app {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.app-loading,
+.app-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--purple-600);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-header {
+  background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-800) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.app-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-copy-link {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.app-copy-link:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.app-session-id {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: monospace;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 3rem;
+  text-align: center;
+}
+
+.app-empty-state h2 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.app-empty-state p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.app-upload-button {
+  padding: 0.75rem 2rem;
+  background: var(--purple-600);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.app-upload-button:hover {
+  background: var(--purple-500);
+}
+
+.app-upload-button:active {
+  background: var(--purple-700);
+}
+
+@media (max-width: 768px) {
+  .app-header-content {
+    padding: 1rem;
+  }
+
+  .app-title {
+    font-size: 1.5rem;
+  }
+
+  .app-header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

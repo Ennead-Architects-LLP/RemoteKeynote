@@ -1,0 +1,23 @@
+.spreadsheet-grid-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.spreadsheet-grid-container .ag-theme-alpine-dark {
+  --ag-font-family: 'Inter', sans-serif;
+  --ag-font-size: 14px;
+  height: 100%;
+}
+
+/* Custom cell locking styles */
+.ag-cell {
+  transition: border 0.2s;
+}
+
+.ag-cell.locked {
+  border: 2px solid var(--purple-400) !important;
+  border-radius: 4px;
+}
+

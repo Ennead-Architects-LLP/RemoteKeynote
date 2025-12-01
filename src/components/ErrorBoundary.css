@@ -1,0 +1,92 @@
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.error-boundary-content {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.error-boundary-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-boundary-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.error-boundary-message {
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  color: var(--text-secondary);
+}
+
+.error-boundary-details {
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.error-boundary-error-info {
+  margin-top: 1rem;
+}
+
+.error-boundary-error-info pre {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-boundary-button {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.error-boundary-button-primary {
+  background: var(--purple-600);
+  border-color: var(--purple-600);
+  color: white;
+}
+
+.error-boundary-button-primary:hover {
+  background: var(--purple-500);
+}
+
+.error-boundary-button:hover:not(.error-boundary-button-primary) {
+  background: var(--bg-secondary);
+  border-color: var(--purple-600);
+}
+
+@media (max-width: 768px) {
+  .error-boundary-actions {
+    flex-direction: column;
+  }
+
+  .error-boundary-button {
+    width: 100%;
+  }
+}
+
