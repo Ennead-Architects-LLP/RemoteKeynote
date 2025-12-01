@@ -2,6 +2,10 @@
 
 A collaborative Excel editor web application with real-time editing, auto-save, and CSV export capabilities.
 
+## Live Demo
+
+- **App URL**: `https://enneadtab-remote-keynote.vercel.app/`
+
 ## Features
 
 - 📊 Upload and edit Excel files
