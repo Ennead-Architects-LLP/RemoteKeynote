@@ -40,6 +40,8 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
     }
 
     setIsProcessing(true);
+    let parseError = false;
+    
     try {
       console.log('[FileUpload] STEP 3: Starting file parsing...');
       const parsedData = await parseExcelFile(file);
@@ -51,12 +53,39 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
       });
 
       console.log('[FileUpload] STEP 5: Calling onUpload callback...');
-      onUpload(parsedData);
-      console.log('[FileUpload] STEP 6: onUpload callback completed');
       
-      showNotification('File uploaded successfully', 'success');
-      onClose();
+      // Handle async callback properly - onUpload may be async
+      try {
+        const uploadResult = onUpload(parsedData);
+        
+        // If onUpload returns a Promise, wait for it
+        if (uploadResult instanceof Promise) {
+          await uploadResult;
+        }
+        
+        console.log('[FileUpload] STEP 6: onUpload callback completed');
+        
+        // Note: Success notification is now handled by App.tsx after validation
+        // Close modal after callback completes (validation happens in App.tsx)
+        onClose();
+      } catch (callbackError) {
+        console.error('[FileUpload] ERROR: onUpload callback failed', callbackError);
+        const errorMessage = callbackError instanceof Error 
+          ? callbackError.message 
+          : 'Failed to process uploaded file';
+        
+        showNotification(errorMessage, 'error');
+        logError(callbackError instanceof Error ? callbackError : new Error(errorMessage), {
+          component: 'FileUpload',
+          fileName: file.name,
+          fileSize: file.size,
+          operation: 'onUploadCallback',
+        });
+        // Don't close modal on callback error - let user see the error
+        // Don't re-throw - we've already handled the error
+      }
     } catch (error) {
+      parseError = true;
       console.error('[FileUpload] ERROR: File parsing failed', error);
       showNotification('Failed to parse file. Please try again.', 'error');
       logError(error instanceof Error ? error : new Error('Failed to parse Excel file'), {
@@ -66,7 +95,7 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
       });
     } finally {
       setIsProcessing(false);
-      console.log('[FileUpload] STEP 7: File processing completed');
+      console.log('[FileUpload] STEP 7: File processing completed', { parseError });
     }
   };
 

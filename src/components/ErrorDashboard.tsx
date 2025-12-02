@@ -26,6 +26,11 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
 
   const loadErrors = () => {
     const queue = getErrorQueue();
+    console.log('[ErrorDashboard] Loading errors:', {
+      errorCount: queue.length,
+      errors: queue.slice(0, 3),
+      localStorage: typeof window !== 'undefined' ? localStorage.getItem('errorQueue') : null,
+    });
     setErrors(queue);
   };
 
@@ -143,6 +148,26 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
           <div className="error-dashboard-actions">
             <button
               className="error-dashboard-btn"
+              onClick={() => {
+                // Test error logging
+                import('../utils/errorLogger').then(({ logError }) => {
+                  logError(new Error('Test error from Error Dashboard'), {
+                    component: 'ErrorDashboard',
+                    operation: 'test',
+                  }, { skipDeduplication: true });
+                  loadErrors();
+                  alert('Test error logged! Check the error list.');
+                });
+              }}
+              style={{
+                backgroundColor: theme.colors.bg.tertiary,
+                color: theme.colors.text.primary,
+              }}
+            >
+              Test Error
+            </button>
+            <button
+              className="error-dashboard-btn"
               onClick={handleFlush}
               style={{
                 backgroundColor: theme.colors.purple[600],
@@ -168,7 +193,13 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
           <div className="error-dashboard-list">
             {filteredErrors.length === 0 ? (
               <div className="error-dashboard-empty" style={{ color: theme.colors.text.secondary }}>
-                No errors found
+                <p>No {filter === 'all' ? '' : filter + ' '}errors found.</p>
+                <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', opacity: 0.7 }}>
+                  {filter === 'all' 
+                    ? 'Errors will appear here when they occur. Click "Test Error" to verify the dashboard is working.'
+                    : `No ${filter} errors. Try selecting "All" to see other error types.`
+                  }
+                </p>
               </div>
             ) : (
               filteredErrors

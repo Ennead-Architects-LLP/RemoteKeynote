@@ -25,6 +25,7 @@ function AppContent() {
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [selectedCol, setSelectedCol] = useState<number | null>(null);
   const [showErrorDashboard, setShowErrorDashboard] = useState(false);
+  const [uploadSuccessTime, setUploadSuccessTime] = useState<number | null>(null);
   const { showNotification } = useNotifications();
 
   // Initialize session
@@ -106,28 +107,186 @@ function AppContent() {
       await initializeSpreadsheet(data.rows);
       console.log('[App] STEP 3: initializeSpreadsheet completed');
 
-      // Wait a bit for Firebase listener to update
-      console.log('[App] STEP 4: Waiting for data propagation...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Retry logic with longer timeout for Firebase data propagation (up to 3 seconds)
+      console.log('[App] STEP 4: Waiting for data propagation with retry logic...');
+      const maxRetries = 6; // 6 attempts over 3 seconds
+      const retryDelay = 500; // 500ms between attempts
+      let hasValidData = false;
+      let lastError: string | null = null;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        
+        // Check data state
+        const currentGridData = getGridData();
+        const currentColumnDefs = getColumnDefs();
+        
+        console.log(`[App] STEP 4.${attempt}: Data state check attempt ${attempt}/${maxRetries}`, {
+          gridDataLength: currentGridData.length,
+          columnDefsLength: currentColumnDefs.length,
+          firstRow: currentGridData[0],
+          firstColumnDef: currentColumnDefs[0],
+        });
+
+        // Simplified validation - be very lenient
+        // Check if data matches expected dimensions from upload
+        const expectedRows = data.rows.length;
+        const expectedCols = data.columnCount || (data.rows[0]?.length || 0);
+        const actualRows = currentGridData.length;
+        const actualCols = currentColumnDefs.length;
+
+        // Check if we have the default empty row (which means no real data)
+        const isEmptyDefaultRow = currentGridData.length === 1 && 
+                                 Object.keys(currentGridData[0] || {}).length === 1 && 
+                                 currentGridData[0]?.col0 === null;
+        
+        // Very simple validation: accept if we have rows and columns and it's not just the empty default row
+        if (!isEmptyDefaultRow && actualRows > 0 && actualCols > 0) {
+          // Accept if:
+          // 1. We have at least 1 row and 1 column (any data is better than nothing), OR
+          // 2. We have the expected number of rows (or close to it)
+          if (actualRows >= 1 && actualCols >= 1) {
+            hasValidData = true;
+            console.log('[App] STEP 5: Valid data confirmed (lenient validation)', {
+              expectedRows,
+              expectedCols,
+              actualRows,
+              actualCols,
+              isEmptyDefaultRow,
+            });
+            break;
+          }
+        }
+
+        // Log why validation failed
+        if (attempt === maxRetries) {
+          const firstRowSample = currentGridData[0] ? Object.values(currentGridData[0]).slice(0, 5) : null;
+          const isEmptyDefaultRow = currentGridData.length === 1 && 
+                                   Object.keys(currentGridData[0] || {}).length === 1 && 
+                                   currentGridData[0]?.col0 === null;
+          
+          lastError = `Data validation failed: Expected ${expectedRows} rows × ${expectedCols} cols, got ${actualRows} rows × ${actualCols} cols. ` +
+            `isEmptyDefaultRow=${isEmptyDefaultRow}, firstRowSample=${JSON.stringify(firstRowSample)}. ` +
+            `Grid data may be empty or incomplete. Please check browser console for more details.`;
+          console.error('[App] ERROR: Final validation failed', {
+            lastError,
+            isEmptyDefaultRow,
+            expectedRows,
+            expectedCols,
+            actualRows,
+            actualCols,
+            firstRowSample,
+            currentGridData: currentGridData.slice(0, 3),
+            currentColumnDefs: currentColumnDefs.slice(0, 3),
+            fullGridDataSample: JSON.stringify(currentGridData.slice(0, 3), null, 2),
+          });
+        } else {
+          console.log(`[App] STEP 4.${attempt}: Data not ready yet, retrying...`, {
+            isEmptyDefaultRow: currentGridData.length === 1 && 
+                              Object.keys(currentGridData[0] || {}).length === 1 && 
+                              currentGridData[0]?.col0 === null,
+            expectedRows,
+            expectedCols,
+            actualRows,
+            actualCols,
+          });
+        }
+      }
+
+      // Final validation before showing success
+      if (!hasValidData) {
+        const currentGridData = getGridData();
+        const currentColumnDefs = getColumnDefs();
+        const errorMessage = lastError || 
+          `Failed to render spreadsheet data. Expected ${data.rows.length} rows and ${data.columnCount} columns, but got ${currentGridData.length} rows and ${currentColumnDefs.length} columns. Please check the file and try again.`;
+        
+        console.error('[App] ERROR: Grid data validation failed', {
+          errorMessage,
+          expectedRows: data.rows.length,
+          expectedCols: data.columnCount,
+          actualRows: currentGridData.length,
+          actualCols: currentColumnDefs.length,
+          gridDataSample: currentGridData.slice(0, 2),
+          columnDefsSample: currentColumnDefs.slice(0, 3),
+        });
+
+        logError(new Error(errorMessage), {
+          component: 'App',
+          sessionId,
+          userId,
+          operation: 'handleFileUpload',
+          expectedRows: data.rows.length,
+          expectedCols: data.columnCount,
+          actualRows: currentGridData.length,
+          actualCols: currentColumnDefs.length,
+        });
+
+        showNotification(errorMessage, 'error');
+        return;
+      }
+
+      console.log('[App] STEP 6: All validations passed, showing success message');
       
-      // Check data state
-      const currentGridData = getGridData();
-      const currentColumnDefs = getColumnDefs();
-      console.log('[App] STEP 5: Data state after initialization', {
-        gridDataLength: currentGridData.length,
-        columnDefsLength: currentColumnDefs.length,
-        hasData: currentGridData.length > 0 && currentColumnDefs.length > 0,
-        firstRow: currentGridData[0],
-        firstColumnDef: currentColumnDefs[0],
+      // Set upload success time to trigger re-render
+      setUploadSuccessTime(Date.now());
+      
+      // Final check - log current state
+      const finalCheck = getGridData();
+      const finalCols = getColumnDefs();
+      console.log('[App] STEP 6.1: Final state check', {
+        finalGridDataLength: finalCheck.length,
+        finalColumnDefsLength: finalCols.length,
+        sampleRow: finalCheck[0],
+        sampleCol: finalCols[0],
+        isEmptyDefaultRow: finalCheck.length === 1 && 
+                          Object.keys(finalCheck[0] || {}).length === 1 && 
+                          finalCheck[0]?.col0 === null,
+      });
+      
+      showNotification('Spreadsheet loaded successfully', 'success');
+      
+      // Force React to re-render by updating state
+      // This ensures the component checks hasData again after state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Check again after delay and log warning if data disappeared
+      const delayedCheck = getGridData();
+      const delayedCols = getColumnDefs();
+      console.log('[App] STEP 6.2: Delayed state check (after 100ms)', {
+        finalGridDataLength: delayedCheck.length,
+        finalColumnDefsLength: delayedCols.length,
+        sampleRow: delayedCheck[0],
+        isEmptyDefaultRow: delayedCheck.length === 1 && 
+                          Object.keys(delayedCheck[0] || {}).length === 1 && 
+                          delayedCheck[0]?.col0 === null,
+      });
+      
+      // Log warning if data seems to have disappeared
+      if (delayedCheck.length === 1 && 
+          Object.keys(delayedCheck[0] || {}).length === 1 && 
+          delayedCheck[0]?.col0 === null) {
+        console.warn('[App] WARNING: Data appears to be lost after upload. This might be a timing issue.');
+        logError(new Error('Data lost after upload - possible timing issue'), {
+          component: 'App',
+          sessionId,
+          userId,
+          operation: 'handleFileUpload',
+          expectedRows: data.rows.length,
+          actualRows: delayedCheck.length,
+        }, { skipDeduplication: true });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load spreadsheet';
+      console.error('[App] ERROR: File upload failed', error);
+      
+      logError(error instanceof Error ? error : new Error(errorMessage), {
+        component: 'App',
+        sessionId,
+        userId,
+        operation: 'handleFileUpload',
       });
 
-      showNotification('Spreadsheet loaded successfully', 'success');
-    } catch (error) {
-      console.error('[App] ERROR: File upload failed', error);
-      showNotification(
-        error instanceof Error ? error.message : 'Failed to load spreadsheet',
-        'error'
-      );
+      showNotification(errorMessage, 'error');
     }
   };
 
@@ -240,13 +399,43 @@ function AppContent() {
   const columnDefs = getColumnDefs();
   const lockedCells = getAllLockedCells();
   
-  // Show grid if we have rows (even if empty) or if we have column definitions
-  const hasData = gridData.length > 0 && columnDefs.length > 0;
+  // Show grid if we have actual data (not just the default empty row)
+  // Check that we have data and it's not just the empty default row
+  const hasEmptyDefaultRow = gridData.length === 1 && 
+                             gridData[0] && 
+                             Object.keys(gridData[0]).length === 1 && 
+                             gridData[0]?.col0 === null;
+  
+  // If we recently had a successful upload (within 10 seconds), be more lenient
+  const recentUpload = uploadSuccessTime && (Date.now() - uploadSuccessTime < 10000);
+  
+  // More lenient: accept if we have rows and columns, OR if we recently uploaded
+  // This handles timing issues where data exists but check is too strict
+  const hasData = gridData.length > 0 && 
+                  columnDefs.length > 0 && 
+                  (!hasEmptyDefaultRow || (recentUpload && gridData.length >= 1 && columnDefs.length > 1));
+  
+  // Additional check: if we have multiple rows or columns, definitely show grid
+  const hasMultipleRows = gridData.length > 1;
+  const hasMultipleCols = columnDefs.length > 1;
+  const definitelyHasData = hasMultipleRows || hasMultipleCols;
+  
+  // Final decision: show grid if hasData OR definitely has data OR recent upload with any data
+  const shouldRenderGrid = hasData || definitelyHasData || (recentUpload && gridData.length > 0 && columnDefs.length > 0);
+  
+  // Count rows with actual data
+  const rowsWithData = gridData.filter(row => 
+    row && Object.values(row).some(val => val !== null && val !== '')
+  ).length;
   
   console.log('[App] STEP 2: Grid state calculated', {
     gridDataLength: gridData.length,
     columnDefsLength: columnDefs.length,
     hasData,
+    hasEmptyDefaultRow,
+    rowsWithData,
+    recentUpload,
+    uploadSuccessTime,
     firstRow: gridData[0],
     firstRowKeys: gridData[0] ? Object.keys(gridData[0]) : [],
     firstRowValues: gridData[0] ? Object.values(gridData[0]).slice(0, 5) : [],
@@ -259,11 +448,16 @@ function AppContent() {
   console.log('[App] STEP 2.1: Grid data RAW:', JSON.stringify(gridData, null, 2).substring(0, 500));
 
   console.log('[App] STEP 3: Conditional rendering decision', {
-    willRenderGrid: hasData,
-    willShowEmptyState: !hasData,
-    reason: hasData 
-      ? 'hasData is true - grid will render' 
-      : `hasData is false - gridData.length=${gridData.length}, columnDefs.length=${columnDefs.length}`,
+    willRenderGrid: shouldRenderGrid,
+    hasData,
+    definitelyHasData,
+    hasMultipleRows,
+    hasMultipleCols,
+    recentUpload,
+    willShowEmptyState: !shouldRenderGrid,
+    reason: shouldRenderGrid 
+      ? 'Grid will render - hasData OR multiple rows/cols OR recent upload' 
+      : `Grid will NOT render - gridData.length=${gridData.length}, columnDefs.length=${columnDefs.length}, hasEmptyDefaultRow=${hasEmptyDefaultRow}`,
   });
 
   return (
@@ -316,11 +510,11 @@ function AppContent() {
         onUploadFile={() => setShowUpload(true)}
         selectedRow={selectedRow}
         selectedCol={selectedCol}
-        hasData={hasData}
+        hasData={shouldRenderGrid}
       />
 
       <div className="app-main">
-        {hasData ? (
+        {shouldRenderGrid ? (
           <SpreadsheetGrid
             rowData={gridData}
             columnDefs={columnDefs}

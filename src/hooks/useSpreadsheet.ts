@@ -417,69 +417,148 @@ export function useSpreadsheet(sessionId: string, userId: string) {
     });
     console.log('[getGridData] STEP 1.1: Data object RAW:', JSON.stringify(data, null, 2).substring(0, 500));
 
-    const rows: any[] = [];
-    const rowIndices = Object.keys(data)
-      .map(Number)
-      .sort((a, b) => a - b);
+    try {
+      const rows: any[] = [];
+      const rowIndices = Object.keys(data)
+        .map(Number)
+        .sort((a, b) => a - b);
 
-    console.log('[getGridData] STEP 2: Row indices calculated', {
-      rowIndicesCount: rowIndices.length,
-      rowIndices: rowIndices.slice(0, 5),
-    });
+      console.log('[getGridData] STEP 2: Row indices calculated', {
+        rowIndicesCount: rowIndices.length,
+        rowIndices: rowIndices.slice(0, 5),
+      });
 
-    if (rowIndices.length === 0) {
-      console.log('[getGridData] STEP 3: No data, returning empty row');
-      return [{ col0: null }];
-    }
-
-    console.log('[getGridData] STEP 3: Calculating max column...');
-    const maxCol = Math.max(
-      ...rowIndices.map((r) => {
-        // Firebase stores keys as strings, so access with string key
-        const cols = Object.keys(data[String(r)] || {}).map(Number);
-        return cols.length > 0 ? Math.max(...cols) : 0;
-      }),
-      0
-    );
-
-    console.log('[getGridData] STEP 4: Max column calculated', {
-      rowCount: rowIndices.length,
-      maxCol,
-      firstRowSample: rowIndices.length > 0 ? data[String(rowIndices[0])] : null,
-    });
-
-    console.log('[getGridData] STEP 5: Transforming rows to AG Grid format...');
-    rowIndices.forEach((rowIndex, idx) => {
-      const row: any = {};
-      for (let col = 0; col <= maxCol; col++) {
-        row[`col${col}`] = getCellValue(rowIndex, col);
+      if (rowIndices.length === 0) {
+        console.log('[getGridData] STEP 3: No data, returning empty row');
+        return [{ col0: null }];
       }
-      rows.push(row);
-      
-      if (idx === 0) {
-        console.log('[getGridData] STEP 5.1: First row transformed', {
-          rowIndex,
-          rowKeys: Object.keys(row),
-          rowValues: Object.values(row).slice(0, 5),
+
+      // Validation: Check data structure
+      const invalidRows = rowIndices.filter(r => {
+        const rowData = data[String(r)];
+        return !rowData || typeof rowData !== 'object';
+      });
+
+      if (invalidRows.length > 0) {
+        console.warn('[getGridData] WARNING: Found invalid row structures', {
+          invalidRows: invalidRows.slice(0, 5),
         });
       }
-    });
 
-    console.log('[getGridData] STEP 6: Transformation complete', {
-      rowCount: rows.length,
-      firstRow: rows[0],
-      firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
-      firstRowValues: rows[0] ? Object.values(rows[0]).slice(0, 5) : [],
-    });
+      console.log('[getGridData] STEP 3: Calculating max column...');
+      const maxCol = Math.max(
+        ...rowIndices.map((r) => {
+          // Firebase stores keys as strings, so access with string key
+          const rowData = data[String(r)];
+          if (!rowData || typeof rowData !== 'object') {
+            return 0;
+          }
+          const cols = Object.keys(rowData).map(Number);
+          return cols.length > 0 ? Math.max(...cols) : 0;
+        }),
+        0
+      );
 
-    const result = rows.length > 0 ? rows : [{ col0: null }];
-    console.log('[getGridData] STEP 7: Returning result', {
-      resultLength: result.length,
-      resultType: result.length > 0 ? 'data' : 'empty',
-    });
+      console.log('[getGridData] STEP 4: Max column calculated', {
+        rowCount: rowIndices.length,
+        maxCol,
+        firstRowSample: rowIndices.length > 0 ? data[String(rowIndices[0])] : null,
+      });
 
-    return result;
-  }, [data, getCellValue]);
+      // Validation: Check if maxCol calculation is valid
+      if (isNaN(maxCol) || maxCol < 0) {
+        console.error('[getGridData] ERROR: Invalid max column calculated', { maxCol });
+        logError(new Error(`Invalid max column calculated: ${maxCol}`), {
+          component: 'getGridData',
+          sessionId,
+          operation: 'calculateMaxColumn',
+          dataSize: Object.keys(data).length,
+          rowIndicesCount: rowIndices.length,
+        });
+        return [{ col0: null }];
+      }
+
+      console.log('[getGridData] STEP 5: Transforming rows to AG Grid format...');
+      let transformationErrors = 0;
+      
+      rowIndices.forEach((rowIndex, idx) => {
+        try {
+          const row: any = {};
+          for (let col = 0; col <= maxCol; col++) {
+            row[`col${col}`] = getCellValue(rowIndex, col);
+          }
+          rows.push(row);
+          
+          if (idx === 0) {
+            console.log('[getGridData] STEP 5.1: First row transformed', {
+              rowIndex,
+              rowKeys: Object.keys(row),
+              rowValues: Object.values(row).slice(0, 5),
+            });
+          }
+        } catch (rowError) {
+          transformationErrors++;
+          console.error(`[getGridData] ERROR: Failed to transform row ${rowIndex}`, rowError);
+          if (transformationErrors <= 3) {
+            logError(rowError instanceof Error ? rowError : new Error(String(rowError)), {
+              component: 'getGridData',
+              sessionId,
+              operation: 'transformRow',
+              rowIndex,
+            });
+          }
+        }
+      });
+
+      if (transformationErrors > 0) {
+        console.warn('[getGridData] WARNING: Some rows failed to transform', {
+          totalRows: rowIndices.length,
+          errors: transformationErrors,
+        });
+      }
+
+      console.log('[getGridData] STEP 6: Transformation complete', {
+        rowCount: rows.length,
+        firstRow: rows[0],
+        firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
+        firstRowValues: rows[0] ? Object.values(rows[0]).slice(0, 5) : [],
+        transformationErrors,
+      });
+
+      // Validation: Check if transformation produced valid results
+      if (rows.length === 0 && rowIndices.length > 0) {
+        console.error('[getGridData] ERROR: Transformation produced no rows despite having data', {
+          rowIndicesCount: rowIndices.length,
+          maxCol,
+        });
+        logError(new Error('Data transformation produced no rows'), {
+          component: 'getGridData',
+          sessionId,
+          operation: 'validateTransformation',
+          rowIndicesCount: rowIndices.length,
+          maxCol,
+        });
+        return [{ col0: null }];
+      }
+
+      const result = rows.length > 0 ? rows : [{ col0: null }];
+      console.log('[getGridData] STEP 7: Returning result', {
+        resultLength: result.length,
+        resultType: result.length > 0 ? 'data' : 'empty',
+      });
+
+      return result;
+    } catch (error) {
+      console.error('[getGridData] ERROR: Fatal error during transformation', error);
+      logError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'getGridData',
+        sessionId,
+        operation: 'fatalError',
+        dataSize: Object.keys(data).length,
+      });
+      return [{ col0: null }];
+    }
+  }, [data, getCellValue, sessionId]);
 
   // Get column definitions for AG Grid
   const getColumnDefs = useCallback((): any[] => {
@@ -490,59 +569,135 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       timestamp: Date.now(),
     });
 
-    const rowIndices = Object.keys(data).map(Number);
-    console.log('[getColumnDefs] STEP 2: Row indices', {
-      rowIndicesCount: rowIndices.length,
-      rowIndices: rowIndices.slice(0, 5),
-    });
+    try {
+      const rowIndices = Object.keys(data).map(Number);
+      console.log('[getColumnDefs] STEP 2: Row indices', {
+        rowIndicesCount: rowIndices.length,
+        rowIndices: rowIndices.slice(0, 5),
+      });
 
-    const maxCol = Math.max(
-      ...rowIndices.map((r) => {
-        // Firebase stores keys as strings, so access with string key
-        const cols = Object.keys(data[String(r)] || {}).map(Number);
-        return cols.length > 0 ? Math.max(...cols) : 0;
-      }),
-      0
-    );
-
-    console.log('[getColumnDefs] STEP 3: Max column calculated', {
-      maxCol,
-    });
-
-    console.log('[getColumnDefs] STEP 4: Generating column definitions...');
-    const cols: any[] = [];
-    for (let col = 0; col <= maxCol; col++) {
-      const colWidth = metadata?.columnWidths?.[col];
-      const colDef = {
-        field: `col${col}`,
-        headerName: String.fromCharCode(65 + (col % 26)) + (col >= 26 ? Math.floor(col / 26) : ''),
-        editable: true,
-        width: colWidth || 120,
-        resizable: true,
-        sortable: false,
-        filter: false,
-      };
-      cols.push(colDef);
+      let maxCol = 0;
       
-      if (col === 0) {
-        console.log('[getColumnDefs] STEP 4.1: First column definition', colDef);
+      if (rowIndices.length === 0) {
+        console.log('[getColumnDefs] STEP 2.1: No data, returning default column');
+        return [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
       }
+
+      // Calculate max column with validation
+      try {
+        maxCol = Math.max(
+          ...rowIndices.map((r) => {
+            // Firebase stores keys as strings, so access with string key
+            const rowData = data[String(r)];
+            if (!rowData || typeof rowData !== 'object') {
+              return 0;
+            }
+            const cols = Object.keys(rowData).map(Number);
+            return cols.length > 0 ? Math.max(...cols) : 0;
+          }),
+          0
+        );
+      } catch (calcError) {
+        console.error('[getColumnDefs] ERROR: Failed to calculate max column', calcError);
+        logError(calcError instanceof Error ? calcError : new Error(String(calcError)), {
+          component: 'getColumnDefs',
+          sessionId,
+          operation: 'calculateMaxColumn',
+          rowIndicesCount: rowIndices.length,
+        });
+        maxCol = 0;
+      }
+
+      console.log('[getColumnDefs] STEP 3: Max column calculated', {
+        maxCol,
+      });
+
+      // Validation: Check if maxCol is valid
+      if (isNaN(maxCol) || maxCol < 0) {
+        console.error('[getColumnDefs] ERROR: Invalid max column calculated', { maxCol });
+        logError(new Error(`Invalid max column calculated: ${maxCol}`), {
+          component: 'getColumnDefs',
+          sessionId,
+          operation: 'validateMaxColumn',
+          dataSize: Object.keys(data).length,
+          rowIndicesCount: rowIndices.length,
+        });
+        return [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
+      }
+
+      console.log('[getColumnDefs] STEP 4: Generating column definitions...');
+      const cols: any[] = [];
+      
+      try {
+        for (let col = 0; col <= maxCol; col++) {
+          const colWidth = metadata?.columnWidths?.[col];
+          
+          // Validation: Check column width is valid
+          const validWidth = typeof colWidth === 'number' && colWidth > 0 ? colWidth : 120;
+          
+          const colDef = {
+            field: `col${col}`,
+            headerName: String.fromCharCode(65 + (col % 26)) + (col >= 26 ? Math.floor(col / 26) : ''),
+            editable: true,
+            width: validWidth,
+            resizable: true,
+            sortable: false,
+            filter: false,
+          };
+          cols.push(colDef);
+          
+          if (col === 0) {
+            console.log('[getColumnDefs] STEP 4.1: First column definition', colDef);
+          }
+        }
+      } catch (colGenError) {
+        console.error('[getColumnDefs] ERROR: Failed to generate column definitions', colGenError);
+        logError(colGenError instanceof Error ? colGenError : new Error(String(colGenError)), {
+          component: 'getColumnDefs',
+          sessionId,
+          operation: 'generateColumns',
+          maxCol,
+        });
+        // Return default column if generation fails
+        return [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
+      }
+
+      console.log('[getColumnDefs] STEP 5: Column definitions generated', {
+        columnCount: cols.length,
+        firstColumn: cols[0],
+        allColumns: cols.map(c => c.field),
+      });
+
+      // Validation: Check if we generated valid columns
+      if (cols.length === 0) {
+        console.error('[getColumnDefs] ERROR: No columns generated despite maxCol > 0', { maxCol });
+        logError(new Error('Column generation produced no results'), {
+          component: 'getColumnDefs',
+          sessionId,
+          operation: 'validateColumns',
+          maxCol,
+        });
+        return [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
+      }
+
+      const result = cols.length > 0 ? cols : [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
+      console.log('[getColumnDefs] STEP 6: Returning result', {
+        resultLength: result.length,
+        resultType: result.length > 0 ? 'columns' : 'default',
+      });
+
+      return result;
+    } catch (error) {
+      console.error('[getColumnDefs] ERROR: Fatal error during column generation', error);
+      logError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'getColumnDefs',
+        sessionId,
+        operation: 'fatalError',
+        dataSize: Object.keys(data).length,
+      });
+      return [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
     }
-
-    console.log('[getColumnDefs] STEP 5: Column definitions generated', {
-      columnCount: cols.length,
-      firstColumn: cols[0],
-      allColumns: cols.map(c => c.field),
-    });
-
-    const result = cols.length > 0 ? cols : [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
-    console.log('[getColumnDefs] STEP 6: Returning result', {
-      resultLength: result.length,
-      resultType: result.length > 0 ? 'columns' : 'default',
-    });
-
-    return result;
-  }, [data, metadata]);
+  }, [data, metadata, sessionId]);
 
   return {
     data,

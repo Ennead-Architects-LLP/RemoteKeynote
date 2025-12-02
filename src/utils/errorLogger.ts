@@ -290,15 +290,42 @@ function addToErrorQueue(errorLog: ErrorLog): void {
 }
 
 /**
- * Get errors from queue
+ * Get errors from queue (merge in-memory and localStorage)
  */
 export function getErrorQueue(): ErrorLog[] {
+  const errors: ErrorLog[] = [];
+  const seenIds = new Set<string>();
+  
+  // First, add errors from in-memory queue (most recent)
+  errorQueue.forEach(err => {
+    if (err.id && !seenIds.has(err.id)) {
+      errors.push(err);
+      seenIds.add(err.id);
+    }
+  });
+  
+  // Then, add errors from localStorage (older ones)
   try {
     const stored = localStorage.getItem('errorQueue');
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
+    if (stored) {
+      const storedErrors: ErrorLog[] = JSON.parse(stored);
+      storedErrors.forEach(err => {
+        if (err.id && !seenIds.has(err.id)) {
+          errors.push(err);
+          seenIds.add(err.id);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[ErrorLogger] Failed to read errors from localStorage:', e);
   }
+  
+  // Sort by timestamp (newest first)
+  return errors.sort((a, b) => {
+    const timeA = new Date(a.timestamp).getTime();
+    const timeB = new Date(b.timestamp).getTime();
+    return timeB - timeA;
+  });
 }
 
 /**
