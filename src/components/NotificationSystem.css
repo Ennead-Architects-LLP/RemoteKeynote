@@ -30,6 +30,16 @@
   transform: translateX(-4px);
 }
 
+.notification-item.notification-persistent {
+  border-width: 2px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+.notification-hint {
+  opacity: 0.8;
+  font-style: italic;
+}
+
 @keyframes slideInRight {
   from {
     transform: translateX(100%);

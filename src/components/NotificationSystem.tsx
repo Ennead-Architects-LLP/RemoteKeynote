@@ -15,22 +15,38 @@ interface NotificationContextType {
   showNotification: (message: string, type?: NotificationType, duration?: number) => void;
 }
 
+// Note: Error notifications do not auto-clear by default
+// They must be manually dismissed by clicking on them
+
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const showNotification = useCallback(
-    (message: string, type: NotificationType = 'info', duration: number = 4000) => {
+    (message: string, type: NotificationType = 'info', duration?: number) => {
       const id = Math.random().toString(36).substring(7);
-      const notification: Notification = { id, message, type, duration };
+      
+      // Error notifications should not auto-clear (duration = 0)
+      // Other notifications default to 4000ms if duration not specified
+      let notificationDuration: number;
+      if (duration !== undefined) {
+        notificationDuration = duration;
+      } else if (type === 'error') {
+        notificationDuration = 0; // Don't auto-clear errors
+      } else {
+        notificationDuration = 4000; // Default 4 seconds for success, info, warning
+      }
+      
+      const notification: Notification = { id, message, type, duration: notificationDuration };
 
       setNotifications((prev) => [...prev, notification]);
 
-      if (duration > 0) {
+      // Only set timeout if duration > 0
+      if (notificationDuration > 0) {
         setTimeout(() => {
           setNotifications((prev) => prev.filter((n) => n.id !== id));
-        }, duration);
+        }, notificationDuration);
       }
     },
     []
@@ -97,14 +113,23 @@ const NotificationItem = ({ notification, onRemove }: NotificationItemProps) => 
     }
   };
 
+  // Error notifications don't auto-clear, so add a visual indicator
+  const isPersistent = notification.type === 'error' && (notification.duration === undefined || notification.duration === 0);
+
   return (
     <div
-      className="notification-item"
+      className={`notification-item ${isPersistent ? 'notification-persistent' : ''}`}
       style={getNotificationStyles()}
       onClick={() => onRemove(notification.id)}
+      title={isPersistent ? 'Click to dismiss (error notifications do not auto-clear)' : 'Click to dismiss'}
     >
       <div className="notification-content">
         <span className="notification-message">{notification.message}</span>
+        {isPersistent && (
+          <span className="notification-hint" style={{ fontSize: '0.75rem', color: theme.colors.text.tertiary, marginTop: '0.25rem', display: 'block' }}>
+            Click to dismiss
+          </span>
+        )}
       </div>
       <button
         className="notification-close"
