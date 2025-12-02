@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { useTheme } from '../context/ThemeContext';
 import type { User } from '../hooks/useUserPresence';
 import './UserPresence.css';
 
@@ -9,7 +8,6 @@ interface UserPresenceProps {
 }
 
 export const UserPresence = ({ users, currentUserId }: UserPresenceProps) => {
-  const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const otherUsers = users.filter((u) => u.userId !== currentUserId);

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, CellValueChangedEvent, SelectionChangedEvent } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine-dark.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { useTheme } from '../context/ThemeContext';
 import { useRaceConditionHandler } from '../hooks/useRaceConditionHandler';
 import './SpreadsheetGrid.css';
@@ -116,7 +116,7 @@ export const SpreadsheetGrid = ({
 
   return (
     <div className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary }}>
-      <div className="ag-theme-alpine-dark" style={{ height: '100%', width: '100%' }}>
+      <div className="ag-theme-quartz" style={{ height: '100%', width: '100%' }}>
         <AgGridReact
           ref={gridRef}
           rowData={rowData}

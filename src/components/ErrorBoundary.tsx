@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ReactErrorInfo) {
     // Log error using error logger utility
-    logReactError(error, { componentStack: errorInfo.componentStack }, {
+    logReactError(error, { componentStack: errorInfo.componentStack || undefined }, {
       component: 'ErrorBoundary',
     });
 
@@ -61,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <ErrorFallback
           error={this.state.error}
-          errorInfo={this.state.errorInfo}
+          errorInfo={this.state.errorInfo ? { componentStack: this.state.errorInfo.componentStack || undefined } : null}
           onReset={this.handleReset}
         />
       );

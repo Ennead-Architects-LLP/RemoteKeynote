@@ -49,7 +49,6 @@ function AppContent() {
   } = useSpreadsheet(sessionId, userId);
 
   // User presence hook
-  const { users, getOtherUsers, setActiveCell, userColor } = useUserPresence(
   const { users, setActiveCell } = useUserPresence(
     sessionId,
     userId,

@@ -28,7 +28,7 @@ export interface ConflictResolution {
 export function resolveCellConflict(
   localValue: CellValue,
   remoteValue: CellValue,
-  currentUserId: string
+  _currentUserId: string
 ): ConflictResolution {
   // If timestamps are equal (rare), prefer the one with higher version
   if (localValue.timestamp === remoteValue.timestamp) {

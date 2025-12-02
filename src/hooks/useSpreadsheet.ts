@@ -27,7 +27,6 @@ export function useSpreadsheet(sessionId: string, userId: string) {
   const { updateCell, executeStructuralOperation, flushBatchUpdates } =
     useRaceConditionHandler(userId);
 
-  const spreadsheetRef = ref(database, `spreadsheets/${sessionId}`);
   const dataRefPath = ref(database, `spreadsheets/${sessionId}/data`);
   const metadataRefPath = ref(database, `spreadsheets/${sessionId}/metadata`);
 
