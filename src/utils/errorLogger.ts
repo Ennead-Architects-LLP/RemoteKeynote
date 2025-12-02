@@ -82,7 +82,7 @@ export function logUnhandledError(event: ErrorEvent) {
  * Send error to external service
  * Can be configured to send to Sentry, LogRocket, or custom API
  */
-async function sendErrorToService(errorLog: ErrorLog): Promise<void> {
+async function sendErrorToService(_errorLog: ErrorLog): Promise<void> {
   try {
     // Option 1: Send to your own API endpoint (if you have one)
     // Uncomment and configure if you have an API route:

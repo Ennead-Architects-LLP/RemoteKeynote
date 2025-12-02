@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { ref, onValue, set, update, get, DataSnapshot } from 'firebase/database';
+import { useState, useEffect, useCallback } from 'react';
+import { ref, onValue, set, update, get } from 'firebase/database';
 import { database } from '../firebase/config';
 import { useRaceConditionHandler } from './useRaceConditionHandler';
 import { logError } from '../utils/errorLogger';
@@ -24,7 +24,6 @@ export function useSpreadsheet(sessionId: string, userId: string) {
   const [metadata, setMetadata] = useState<SpreadsheetMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const dataRef = useRef<DataSnapshot | null>(null);
   const { updateCell, executeStructuralOperation, flushBatchUpdates } =
     useRaceConditionHandler(userId);
 

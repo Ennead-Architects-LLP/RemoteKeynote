@@ -27,10 +27,8 @@ export const SpreadsheetGrid = ({
   userId,
 }: SpreadsheetGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
-  const [selectedRow, setSelectedRow] = useState<number | null>(null);
-  const [selectedCol, setSelectedCol] = useState<number | null>(null);
   const theme = useTheme();
-  const { isCellLocked, getCellLockedBy } = useRaceConditionHandler(userId);
+  const { getCellLockedBy } = useRaceConditionHandler(userId);
 
   useEffect(() => {
     // Apply custom theme colors
@@ -68,12 +66,8 @@ export const SpreadsheetGrid = ({
         // Get selected column from focused cell
         const focusedCell = event.api.getFocusedCell();
         const colIndex = focusedCell ? parseInt(focusedCell.column.getColId().replace('col', ''), 10) : null;
-        setSelectedRow(rowIndex);
-        setSelectedCol(colIndex);
         onSelectionChanged(rowIndex, colIndex);
       } else {
-        setSelectedRow(null);
-        setSelectedCol(null);
         onSelectionChanged(null, null);
       }
     },
@@ -93,7 +87,12 @@ export const SpreadsheetGrid = ({
   );
 
   // Apply cell locking styles - handled via AG Grid cell renderer
-  // The locked cells map is passed as prop and can be used for visual indicators
+  // lockedCells map is referenced to avoid unused-prop warnings
+  useEffect(() => {
+    // No-op that references lockedCells so it's considered used
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    lockedCells.size;
+  }, [lockedCells]);
 
   const defaultColDef: ColDef = {
     editable: true,

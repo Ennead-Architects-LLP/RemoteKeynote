@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider, useNotifications } from './components/NotificationSystem';
-import { Modal } from './components/Modal';
 import { UserLogin } from './components/UserLogin';
 import { FileUpload } from './components/FileUpload';
 import { Toolbar } from './components/Toolbar';
@@ -47,11 +46,11 @@ function AppContent() {
     setColumnWidth,
     getGridData,
     getColumnDefs,
-    metadata,
   } = useSpreadsheet(sessionId, userId);
 
   // User presence hook
   const { users, getOtherUsers, setActiveCell, userColor } = useUserPresence(
+  const { users, setActiveCell } = useUserPresence(
     sessionId,
     userId,
     userName
@@ -133,6 +132,15 @@ function AppContent() {
   }, [showNotification]);
 
   const existingUserNames = users.map((u) => u.name);
+  // Log data loading errors (if any)
+  useEffect(() => {
+    if (!error) return;
+    logError(new Error(error), {
+      component: 'App',
+      sessionId,
+      userId,
+    });
+  }, [error, sessionId, userId]);
 
   if (loading && !userName) {
     return (
@@ -144,15 +152,6 @@ function AppContent() {
   }
 
   if (error) {
-    // Log error when it occurs
-    useEffect(() => {
-      logError(new Error(error), {
-        component: 'App',
-        sessionId,
-        userId,
-      });
-    }, [error, sessionId, userId]);
-
     return (
       <div className="app-error">
         <h2>Error</h2>

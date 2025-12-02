@@ -30,10 +30,6 @@ export function resolveCellConflict(
   remoteValue: CellValue,
   currentUserId: string
 ): ConflictResolution {
-  // If local user is currently editing, prioritize local (optimistic update)
-  const isLocalUserEditing = localValue.userId === currentUserId;
-  const isRemoteUserEditing = remoteValue.userId === currentUserId;
-
   // If timestamps are equal (rare), prefer the one with higher version
   if (localValue.timestamp === remoteValue.timestamp) {
     const winner = localValue.version > remoteValue.version ? localValue : remoteValue;

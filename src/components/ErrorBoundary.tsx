@@ -1,4 +1,4 @@
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, ReactNode, ErrorInfo as ReactErrorInfo } from 'react';
 import { logReactError } from '../utils/errorLogger';
 import './ErrorBoundary.css';
 import { ErrorFallback } from './ErrorFallback';
@@ -11,7 +11,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: ErrorInfo | null;
+  errorInfo: ReactErrorInfo | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -32,9 +32,9 @@ export class ErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ReactErrorInfo) {
     // Log error using error logger utility
-    logReactError(error, errorInfo, {
+    logReactError(error, { componentStack: errorInfo.componentStack }, {
       component: 'ErrorBoundary',
     });
 

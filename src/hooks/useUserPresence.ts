@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ref, onValue, set, onDisconnect, serverTimestamp, DataSnapshot } from 'firebase/database';
+import { ref, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase/config';
 
 export interface User {

@@ -5,7 +5,6 @@
 
 import {
   resolveCellConflict,
-  mergeCellUpdates,
   OperationQueue,
   VersionManager,
   CellLockManager,

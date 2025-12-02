@@ -1,14 +1,14 @@
 import { useTheme } from '../context/ThemeContext';
 import { useNotifications } from './NotificationSystem';
 
-interface ErrorFallbackProps {
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
-  onReset: () => void;
+export interface ErrorFallbackInfo {
+  componentStack?: string;
 }
 
-interface ErrorInfo {
-  componentStack?: string;
+interface ErrorFallbackProps {
+  error: Error | null;
+  errorInfo: ErrorFallbackInfo | null;
+  onReset: () => void;
 }
 
 export const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
