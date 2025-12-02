@@ -256,6 +256,7 @@ function AppContent() {
     sessionId,
     userId,
   });
+  console.log('[App] STEP 2.1: Grid data RAW:', JSON.stringify(gridData, null, 2).substring(0, 500));
 
   console.log('[App] STEP 3: Conditional rendering decision', {
     willRenderGrid: hasData,
@@ -279,7 +280,7 @@ function AppContent() {
 
       <div className="app-header">
         <div className="app-header-content">
-          <h1 className="app-title">RemoteKeynote</h1>
+          <h1 className="app-title">EnneadTabRemoteKeynote</h1>
           <div className="app-header-actions">
             <button className="app-copy-link" onClick={handleCopyLink}>
               🔗 Copy Link

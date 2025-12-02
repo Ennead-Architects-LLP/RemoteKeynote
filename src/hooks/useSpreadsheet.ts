@@ -35,7 +35,11 @@ export function useSpreadsheet(sessionId: string, userId: string) {
 
   // Listen to Firebase changes
   useEffect(() => {
-    console.log('[useSpreadsheet] Setting up Firebase listeners', { sessionId });
+    console.log('[useSpreadsheet] Setting up Firebase listeners', { 
+      sessionId,
+      dataRefPath: `spreadsheets/${sessionId}/data`,
+      metadataRefPath: `spreadsheets/${sessionId}/metadata`,
+    });
     setLoading(true);
 
     const unsubscribeData = onValue(
@@ -49,6 +53,7 @@ export function useSpreadsheet(sessionId: string, userId: string) {
           sampleRow: firebaseData[Object.keys(firebaseData)[0]],
           timestamp: Date.now(),
         });
+        console.log('[useSpreadsheet] Firebase data RAW:', JSON.stringify(firebaseData, null, 2).substring(0, 500));
         
         console.log('[useSpreadsheet] Updating data state...');
         setData(firebaseData);
@@ -154,6 +159,7 @@ export function useSpreadsheet(sessionId: string, userId: string) {
           columnCount: rows?.[0]?.length || 0,
           sessionId,
           userId,
+          dataRefPath: `spreadsheets/${sessionId}/data`,
         });
 
         if (!rows || rows.length === 0) {
@@ -409,6 +415,7 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       dataSize: Object.keys(data).length,
       timestamp: Date.now(),
     });
+    console.log('[getGridData] STEP 1.1: Data object RAW:', JSON.stringify(data, null, 2).substring(0, 500));
 
     const rows: any[] = [];
     const rowIndices = Object.keys(data)
