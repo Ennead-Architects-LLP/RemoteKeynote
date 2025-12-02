@@ -29,7 +29,7 @@ A collaborative Excel editor web application with real-time editing, auto-save, 
 
 ## Setup
 
-1. Install dependencies (sets up virtual environment with isolated node_modules):
+1. Install dependencies:
 ```bash
 npm install
 ```
