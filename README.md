@@ -2,9 +2,16 @@
 
 A collaborative Excel editor web application with real-time editing, auto-save, and CSV export capabilities.
 
+## 🚀 Quick Links
+
+- **[🌐 Live Demo](https://enneadtab-remote-keynote.vercel.app/)** - Try the app now!
+- **[📖 Documentation](#setup)** - Setup instructions below
+- **[🔧 Tech Stack](#tech-stack)** - Technologies used
+- **[📦 Deploy](#deploy-to-vercel)** - Deployment guide
+
 ## Live Demo
 
-- **App URL**: `https://enneadtab-remote-keynote.vercel.app/`
+- **App URL**: [https://enneadtab-remote-keynote.vercel.app/](https://enneadtab-remote-keynote.vercel.app/)
 
 ## Features
 
@@ -52,7 +59,7 @@ cp .env.example .env
    npm run dev:backend
    ```
 
-4. Open your browser and navigate to `http://localhost:5173`
+4. Open your browser and navigate to [http://localhost:5173](http://localhost:5173)
 
 ### Using PowerShell Scripts (Windows)
 
@@ -73,20 +80,40 @@ npm run build
 
 ## Deploy to Vercel
 
-The project is configured for Vercel deployment. Simply connect your repository to Vercel and it will automatically build and deploy.
+The project is configured for Vercel deployment. Simply connect your repository to [Vercel](https://vercel.com/) and it will automatically build and deploy.
+
+**Quick Deploy:**
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Ennead-Architects-LLP/RemoteKeynote)
 
 ## Tech Stack
 
-- React + TypeScript
-- Vite
-- AG Grid Community Edition
-- Firebase Realtime Database
-- SheetJS (xlsx.js)
-- Vercel Serverless Functions (for backend API)
-- Concurrently (for running multiple dev servers)
+- **[React](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** - Frontend framework
+- **[Vite](https://vitejs.dev/)** - Build tool and dev server
+- **[AG Grid](https://www.ag-grid.com/)** Community Edition - Spreadsheet grid component
+- **[Firebase Realtime Database](https://firebase.google.com/products/realtime-database)** - Real-time data synchronization
+- **[SheetJS (xlsx.js)](https://sheetjs.com/)** - Excel file parsing
+- **[Vercel](https://vercel.com/)** Serverless Functions - Backend API
+- **[Concurrently](https://www.npmjs.com/package/concurrently)** - Run multiple dev servers
 
 ## Development Notes
 
 - **Virtual Environment**: Node.js uses `node_modules` as the virtual environment, isolating project dependencies
-- **Backend API**: Serverless functions are located in the `/api` directory and run locally using Vercel CLI
+- **Backend API**: Serverless functions are located in the `/api` directory and run locally using [Vercel CLI](https://vercel.com/docs/cli)
 - **Environment Variables**: Required Firebase configuration variables must be set in `.env` file
+  - Get Firebase credentials from [Firebase Console](https://console.firebase.google.com/)
+  - See [Firebase Setup Guide](https://firebase.google.com/docs/web/setup) for details
+
+## Additional Resources
+
+- **[Firebase Documentation](https://firebase.google.com/docs)**
+- **[Vercel Documentation](https://vercel.com/docs)**
+- **[React Documentation](https://react.dev/)**
+- **[AG Grid Documentation](https://www.ag-grid.com/react-data-grid/)**
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available for use.
