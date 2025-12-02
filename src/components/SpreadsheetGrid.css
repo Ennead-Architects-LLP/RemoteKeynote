@@ -15,6 +15,16 @@
   width: 100%;
   height: 100%;
   min-height: 400px;
+  /* AG Grid requires block display with explicit height */
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ensure AG Grid root element fills container */
+.spreadsheet-grid-container .ag-theme-quartz > div {
+  height: 100%;
+  width: 100%;
 }
 
 /* Custom cell locking styles */

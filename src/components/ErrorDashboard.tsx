@@ -12,7 +12,7 @@ interface ErrorDashboardProps {
 export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
   const theme = useTheme();
   const [errors, setErrors] = useState<ErrorLog[]>([]);
-  const [filter, setFilter] = useState<'all' | 'critical' | 'error' | 'warning'>('all');
+  const [filter, setFilter] = useState<'all' | 'critical' | 'error' | 'warning' | 'info'>('all');
   const [selectedError, setSelectedError] = useState<ErrorLog | null>(null);
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
     critical: errors.filter((e) => e.severity === 'critical').length,
     error: errors.filter((e) => e.severity === 'error').length,
     warning: errors.filter((e) => e.severity === 'warning').length,
+    info: errors.filter((e) => e.severity === 'info').length,
   };
 
   if (!isOpen) return null;
@@ -128,6 +129,16 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
             >
               Warnings ({errorCounts.warning})
             </button>
+            <button
+              className={`filter-btn ${filter === 'info' ? 'active' : ''}`}
+              onClick={() => setFilter('info')}
+              style={{
+                backgroundColor: filter === 'info' ? theme.colors.purple[500] : theme.colors.bg.tertiary,
+                color: theme.colors.text.primary,
+              }}
+            >
+              Info ({errorCounts.info})
+            </button>
           </div>
           <div className="error-dashboard-actions">
             <button
@@ -181,6 +192,8 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
                           ? theme.colors.status.error
                           : error.severity === 'warning'
                           ? theme.colors.status.warning
+                          : error.severity === 'info'
+                          ? theme.colors.purple[500]
                           : theme.colors.border.default,
                     }}
                   >
@@ -193,6 +206,8 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
                               ? theme.colors.status.error
                               : error.severity === 'warning'
                               ? theme.colors.status.warning
+                              : error.severity === 'info'
+                              ? theme.colors.purple[500]
                               : theme.colors.text.secondary,
                         }}
                       >
@@ -245,6 +260,14 @@ export const ErrorDashboard = ({ isOpen, onClose }: ErrorDashboardProps) => {
                   <div className="error-dashboard-detail-section">
                     <label style={{ color: theme.colors.text.secondary }}>Component Stack</label>
                     <pre style={{ color: theme.colors.text.primary }}>{selectedError.componentStack}</pre>
+                  </div>
+                )}
+                {selectedError.logData && selectedError.logData.length > 0 && (
+                  <div className="error-dashboard-detail-section">
+                    <label style={{ color: theme.colors.text.secondary }}>Log Data</label>
+                    <pre style={{ color: theme.colors.text.primary }}>
+                      {JSON.stringify(selectedError.logData, null, 2)}
+                    </pre>
                   </div>
                 )}
                 <div className="error-dashboard-detail-section">

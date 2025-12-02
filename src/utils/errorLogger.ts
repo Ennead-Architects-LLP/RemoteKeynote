@@ -428,19 +428,34 @@ export function logConsoleOutput(level: 'log' | 'warn' | 'info' | 'debug', ...ar
   const isProduction = import.meta.env.MODE === 'production';
   const isFilteredMessage = FILTERED_MESSAGES.some(filtered => message.includes(filtered));
   
-  // In production, only send errors and warnings, and skip filtered messages
-  if (isProduction && (level === 'log' || level === 'info' || level === 'debug' || isFilteredMessage)) {
-    return; // Don't send to API in production
+  // In production, skip filtered messages but allow info logs
+  if (isProduction && isFilteredMessage) {
+    return; // Don't send filtered messages
+  }
+
+  // Determine severity based on log level
+  let severity: ErrorSeverity = 'info';
+  if (level === 'error' || level === 'warn') {
+    severity = level === 'error' ? 'error' : 'warning';
+  } else if (level === 'log' || level === 'info') {
+    severity = 'info';
+  } else if (level === 'debug') {
+    severity = 'debug';
   }
 
   const errorLog: ErrorLog = {
+    id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     message: `Console ${level}: ${message}`,
     timestamp: new Date().toISOString(),
     url: window.location.href,
     userAgent: navigator.userAgent,
     environment: import.meta.env.MODE || 'development',
     sessionId: getSessionId(),
+    userId: currentUserId,
+    userName: currentUserName,
     logLevel: level,
+    severity: severity,
+    category: 'unknown',
     logData: args.map(arg => {
       // Serialize objects safely
       try {
@@ -451,10 +466,15 @@ export function logConsoleOutput(level: 'log' | 'warn' | 'info' | 'debug', ...ar
     }),
   };
 
-  // Try to send to service
-  sendErrorToService(errorLog).catch(() => {
-    // Silently fail
-  });
+  // Add to error queue for ErrorDashboard
+  addToErrorQueue(errorLog);
+
+  // Try to send to service (skip debug in production)
+  if (!(isProduction && level === 'debug')) {
+    sendErrorToService(errorLog).catch(() => {
+      // Silently fail
+    });
+  }
 }
 
 // Store original console methods to avoid recursion

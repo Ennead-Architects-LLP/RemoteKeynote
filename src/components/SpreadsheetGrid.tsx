@@ -39,6 +39,7 @@ export const SpreadsheetGrid = ({
   console.log('[SpreadsheetGrid] STEP 1.1: Full first row data:', JSON.stringify(rowData[0], null, 2));
 
   const gridRef = useRef<AgGridReact>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
   const { getCellLockedBy } = useRaceConditionHandler(userId);
 
@@ -57,6 +58,40 @@ export const SpreadsheetGrid = ({
     root.style.setProperty('--ag-input-focus-border-color', theme.colors.purple[600]);
     console.log('[SpreadsheetGrid] STEP 2.1: Theme colors applied');
   }, [theme]);
+
+  // Ensure grid container has explicit height
+  useEffect(() => {
+    const updateGridHeight = () => {
+      if (containerRef.current) {
+        const container = containerRef.current;
+        const rect = container.getBoundingClientRect();
+        const height = rect.height;
+        console.log('[SpreadsheetGrid] STEP 2.2: Container height calculation', {
+          containerHeight: height,
+          rectHeight: rect.height,
+          clientHeight: container.clientHeight,
+          offsetHeight: container.offsetHeight,
+        });
+        
+        // Ensure AG Grid container has explicit height
+        const agTheme = container.querySelector('.ag-theme-quartz') as HTMLElement;
+        if (agTheme && height > 0) {
+          agTheme.style.height = `${height}px`;
+          console.log('[SpreadsheetGrid] STEP 2.3: Set explicit height on AG Grid container', height);
+        }
+      }
+    };
+
+    updateGridHeight();
+    window.addEventListener('resize', updateGridHeight);
+    // Also update after a short delay to catch any layout changes
+    const timeoutId = setTimeout(updateGridHeight, 100);
+    
+    return () => {
+      window.removeEventListener('resize', updateGridHeight);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Force grid refresh when data changes
   useEffect(() => {
@@ -207,7 +242,7 @@ export const SpreadsheetGrid = ({
   });
 
   return (
-    <div className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div ref={containerRef} className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <div className="ag-theme-quartz" style={{ flex: 1, width: '100%', height: '100%', minHeight: '400px' }}>
         <AgGridReact
           ref={gridRef}
@@ -247,23 +282,112 @@ export const SpreadsheetGrid = ({
               const renderedCells = document.querySelectorAll('.ag-cell');
               const cellValues = Array.from(renderedCells).slice(0, 5).map(cell => cell.textContent);
               const headerCells = document.querySelectorAll('.ag-header-cell');
-              console.log('[SpreadsheetGrid] STEP 5.2: Grid rendering verification', {
-                displayedRowCount,
-                renderedCellCount: renderedCells.length,
-                headerCellCount: headerCells.length,
-                firstCellValues: cellValues,
-                gridContainerVisible: document.querySelector('.spreadsheet-grid-container') !== null,
-                agThemeVisible: document.querySelector('.ag-theme-quartz') !== null,
-                gridHeight: document.querySelector('.ag-theme-quartz')?.clientHeight,
-                gridWidth: document.querySelector('.ag-theme-quartz')?.clientWidth,
-                hasRows: displayedRowCount > 0,
-              });
+              const gridContainer = document.querySelector('.spreadsheet-grid-container') as HTMLElement;
+              const agTheme = document.querySelector('.ag-theme-quartz') as HTMLElement;
+              
+              console.log('[SpreadsheetGrid] STEP 5.2: Grid rendering verification');
+              console.log('[SpreadsheetGrid] STEP 5.2.1: displayedRowCount =', displayedRowCount);
+              console.log('[SpreadsheetGrid] STEP 5.2.2: renderedCellCount =', renderedCells.length);
+              console.log('[SpreadsheetGrid] STEP 5.2.3: headerCellCount =', headerCells.length);
+              console.log('[SpreadsheetGrid] STEP 5.2.4: firstCellValues =', cellValues);
+              console.log('[SpreadsheetGrid] STEP 5.2.5: gridContainer exists =', gridContainer !== null);
+              console.log('[SpreadsheetGrid] STEP 5.2.6: agTheme exists =', agTheme !== null);
+              console.log('[SpreadsheetGrid] STEP 5.2.7: gridHeight =', agTheme?.clientHeight);
+              console.log('[SpreadsheetGrid] STEP 5.2.8: gridWidth =', agTheme?.clientWidth);
+              console.log('[SpreadsheetGrid] STEP 5.2.9: containerHeight =', gridContainer?.clientHeight);
+              console.log('[SpreadsheetGrid] STEP 5.2.10: containerWidth =', gridContainer?.clientWidth);
+              console.log('[SpreadsheetGrid] STEP 5.2.11: hasRows =', displayedRowCount > 0);
+              
+              // Check visibility and cell content
+              if (agTheme) {
+                const computedStyle = window.getComputedStyle(agTheme);
+                const rect = agTheme.getBoundingClientRect();
+                const isInViewport = rect.top >= 0 && rect.left >= 0 && 
+                                   rect.bottom <= window.innerHeight && 
+                                   rect.right <= window.innerWidth;
+                
+                // Check first few cells for content and visibility
+                const firstCell = renderedCells[0] as HTMLElement;
+                const firstCellStyle = firstCell ? window.getComputedStyle(firstCell) : null;
+                const firstCellRect = firstCell?.getBoundingClientRect();
+                
+                // Check multiple cells for better diagnostics
+                const sampleCells = Array.from(renderedCells).slice(0, 5) as HTMLElement[];
+                const cellDiagnostics = sampleCells.map(cell => {
+                  const style = window.getComputedStyle(cell);
+                  const rect = cell.getBoundingClientRect();
+                  return {
+                    text: cell.textContent?.substring(0, 20),
+                    width: rect.width,
+                    height: rect.height,
+                    color: style.color,
+                    bgColor: style.backgroundColor,
+                    display: style.display,
+                    visibility: style.visibility,
+                    opacity: style.opacity,
+                    zIndex: style.zIndex,
+                    isVisible: rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden',
+                  };
+                });
+                
+                console.log('[SpreadsheetGrid] STEP 5.2.12: Visibility check', {
+                  display: computedStyle.display,
+                  visibility: computedStyle.visibility,
+                  opacity: computedStyle.opacity,
+                  zIndex: computedStyle.zIndex,
+                  position: computedStyle.position,
+                  top: rect.top,
+                  left: rect.left,
+                  isInViewport,
+                  isVisible: computedStyle.display !== 'none' && 
+                            computedStyle.visibility !== 'hidden' && 
+                            parseFloat(computedStyle.opacity) > 0,
+                  firstCellColor: firstCellStyle?.color,
+                  firstCellBgColor: firstCellStyle?.backgroundColor,
+                  firstCellText: firstCell?.textContent,
+                  firstCellDisplay: firstCellStyle?.display,
+                  firstCellWidth: firstCellRect?.width,
+                  firstCellHeight: firstCellRect?.height,
+                  cellDiagnostics,
+                });
+                
+                // If cells exist but text might be invisible, log a warning
+                if (renderedCells.length > 0 && firstCell && firstCellStyle) {
+                  const textColor = firstCellStyle.color;
+                  const bgColor = firstCellStyle.backgroundColor;
+                  if (textColor === bgColor || (textColor === 'rgba(0, 0, 0, 0)' && bgColor === 'rgba(0, 0, 0, 0)')) {
+                    console.warn('[SpreadsheetGrid] WARNING: Cell text color might match background!', {
+                      textColor,
+                      bgColor,
+                    });
+                  }
+                  
+                  // Check if cells have zero dimensions
+                  if (firstCellRect && (firstCellRect.width === 0 || firstCellRect.height === 0)) {
+                    console.warn('[SpreadsheetGrid] WARNING: Cells have zero dimensions!', {
+                      width: firstCellRect.width,
+                      height: firstCellRect.height,
+                    });
+                  }
+                }
+              }
               
               // If no cells are rendered, try to force a refresh
               if (renderedCells.length === 0 && rowData.length > 0) {
                 console.log('[SpreadsheetGrid] STEP 5.3: No cells rendered, forcing refresh...');
                 event.api.refreshCells({ force: true });
                 event.api.sizeColumnsToFit();
+                
+                // Try again after refresh
+                setTimeout(() => {
+                  const newRenderedCells = document.querySelectorAll('.ag-cell');
+                  console.log('[SpreadsheetGrid] STEP 5.3.1: After refresh, renderedCellCount =', newRenderedCells.length);
+                  if (newRenderedCells.length === 0) {
+                    console.error('[SpreadsheetGrid] ERROR: Grid still not rendering cells after refresh!');
+                    console.error('[SpreadsheetGrid] ERROR: rowData.length =', rowData.length);
+                    console.error('[SpreadsheetGrid] ERROR: columnDefs.length =', columnDefs.length);
+                  }
+                }, 200);
               }
             }, 500);
           }}
