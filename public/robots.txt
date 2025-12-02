@@ -1,0 +1,10 @@
+# robots.txt for RemoteKeynote
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://enneadtab-remote-keynote.vercel.app/sitemap.xml
+
+# Crawl-delay (optional, helps prevent overloading)
+Crawl-delay: 1
+
