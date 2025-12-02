@@ -216,7 +216,7 @@ function interceptConsole() {
 
   console.error = (...args: any[]) => {
     originalConsole!.error.apply(console, args);
-    // Check if first arg is an Error - if so, use logError, otherwise use logConsoleOutput
+    // Check if first arg is an Error - if so, use logError, otherwise use logConsoleOutput with 'warn'
     const firstArg = args[0];
     if (firstArg instanceof Error) {
       logError(firstArg, {
@@ -224,7 +224,7 @@ function interceptConsole() {
         consoleArgs: args.slice(1),
       });
     } else {
-      logConsoleOutput('error', ...args);
+      logConsoleOutput('warn', ...args);
     }
   };
 
@@ -252,9 +252,10 @@ function interceptNetworkErrors() {
       // Log failed requests
       if (!response.ok) {
         const error = new Error(`Network request failed: ${response.status} ${response.statusText}`);
+        const urlString = typeof args[0] === 'string' ? args[0] : args[0] instanceof URL ? args[0].href : (args[0] as Request).url;
         logError(error, {
           type: 'networkError',
-          url: typeof args[0] === 'string' ? args[0] : args[0].url,
+          url: urlString,
           status: response.status,
           statusText: response.statusText,
           method: typeof args[1] !== 'undefined' && args[1].method ? args[1].method : 'GET',
@@ -263,9 +264,10 @@ function interceptNetworkErrors() {
       
       return response;
     } catch (error) {
+      const urlString = typeof args[0] === 'string' ? args[0] : args[0] instanceof URL ? args[0].href : (args[0] as Request).url;
       logError(error instanceof Error ? error : new Error(String(error)), {
         type: 'networkError',
-        url: typeof args[0] === 'string' ? args[0] : args[0].url,
+        url: urlString,
         method: typeof args[1] !== 'undefined' && args[1].method ? args[1].method : 'GET',
       });
       throw error;
