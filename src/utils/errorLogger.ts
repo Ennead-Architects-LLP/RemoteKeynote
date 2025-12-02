@@ -153,13 +153,31 @@ function getSessionId(): string | undefined {
 }
 
 /**
+ * Messages to filter out from production logs
+ */
+const FILTERED_MESSAGES = [
+  'Error handlers initialized',
+];
+
+/**
  * Log general console output (log, warn, info, debug)
  */
 export function logConsoleOutput(level: 'log' | 'warn' | 'info' | 'debug', ...args: any[]) {
+  const message = args.map(arg => 
+    typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+  ).join(' ');
+
+  // Filter out initialization and debug messages in production
+  const isProduction = import.meta.env.MODE === 'production';
+  const isFilteredMessage = FILTERED_MESSAGES.some(filtered => message.includes(filtered));
+  
+  // In production, only send errors and warnings, and skip filtered messages
+  if (isProduction && (level === 'log' || level === 'info' || level === 'debug' || isFilteredMessage)) {
+    return; // Don't send to API in production
+  }
+
   const errorLog: ErrorLog = {
-    message: `Console ${level}: ${args.map(arg => 
-      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-    ).join(' ')}`,
+    message: `Console ${level}: ${message}`,
     timestamp: new Date().toISOString(),
     url: window.location.href,
     userAgent: navigator.userAgent,
@@ -176,7 +194,7 @@ export function logConsoleOutput(level: 'log' | 'warn' | 'info' | 'debug', ...ar
     }),
   };
 
-  // Always try to send to service
+  // Try to send to service
   sendErrorToService(errorLog).catch(() => {
     // Silently fail
   });
@@ -314,8 +332,10 @@ export function initializeErrorHandlers() {
     // event.preventDefault();
   });
 
-  // Log when error handlers are initialized
-  console.log('Error handlers initialized');
+  // Log when error handlers are initialized (only in development, using original console to avoid interception)
+  if (import.meta.env.DEV && originalConsole) {
+    originalConsole.log('Error handlers initialized');
+  }
 }
 
 /**

@@ -15,7 +15,8 @@ if (-not (Test-Path "node_modules")) {
 $npmPaths = @(
     "C:\Program Files\nodejs\npm.cmd",
     "$env:APPDATA\npm\npm.cmd",
-    "$env:LOCALAPPDATA\Programs\nodejs\npm.cmd"
+    "$env:LOCALAPPDATA\Programs\nodejs\npm.cmd",
+    "C:\Users\szhang\github\node\npm.cmd"
 )
 
 $npmFound = $false

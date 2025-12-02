@@ -131,28 +131,59 @@ export function useSpreadsheet(sessionId: string, userId: string) {
   // Initialize spreadsheet with data
   const initializeSpreadsheet = useCallback(
     async (rows: (string | number | null)[][]) => {
-      const newData: SpreadsheetData = {};
-      rows.forEach((row, rowIndex) => {
-        newData[rowIndex] = {};
-        row.forEach((cell, colIndex) => {
-          const cellValue: CellValue = {
-            value: cell,
-            timestamp: Date.now(),
-            userId,
-            version: 1,
-          };
-          newData[rowIndex][colIndex] = cellValue;
-        });
-      });
+      try {
+        if (!rows || rows.length === 0) {
+          const errorMsg = 'No data to initialize. Rows array is empty.';
+          setError(errorMsg);
+          logError(new Error(errorMsg), {
+            component: 'useSpreadsheet',
+            sessionId,
+            operation: 'initializeSpreadsheet',
+          });
+          return;
+        }
 
-      await set(dataRefPath, newData);
-      await set(metadataRefPath, {
-        name: 'Uploaded Spreadsheet',
-        createdAt: Date.now(),
-        lastModified: Date.now(),
-      });
+        const newData: SpreadsheetData = {};
+        rows.forEach((row, rowIndex) => {
+          newData[String(rowIndex)] = {};
+          row.forEach((cell, colIndex) => {
+            const cellValue: CellValue = {
+              value: cell,
+              timestamp: Date.now(),
+              userId,
+              version: 1,
+            };
+            newData[String(rowIndex)][String(colIndex)] = cellValue;
+          });
+        });
+
+        console.log('Initializing spreadsheet with data:', {
+          rowCount: rows.length,
+          columnCount: rows[0]?.length || 0,
+          dataKeys: Object.keys(newData).slice(0, 5),
+        });
+
+        await set(dataRefPath, newData);
+        await set(metadataRefPath, {
+          name: 'Uploaded Spreadsheet',
+          createdAt: Date.now(),
+          lastModified: Date.now(),
+        });
+
+        console.log('Spreadsheet initialized successfully');
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to initialize spreadsheet';
+        setError(errorMsg);
+        logError(error instanceof Error ? error : new Error(errorMsg), {
+          component: 'useSpreadsheet',
+          sessionId,
+          operation: 'initializeSpreadsheet',
+          rowCount: rows?.length || 0,
+        });
+        throw error;
+      }
     },
-    [userId, dataRefPath, metadataRefPath]
+    [userId, dataRefPath, metadataRefPath, sessionId]
   );
 
   // Insert row
@@ -323,7 +354,8 @@ export function useSpreadsheet(sessionId: string, userId: string) {
   // Get cell value helper
   const getCellValue = useCallback(
     (row: number, col: number): string | number | null => {
-      return data[row]?.[col]?.value ?? null;
+      // Firebase stores keys as strings, so we need to convert to strings
+      return data[String(row)]?.[String(col)]?.value ?? null;
     },
     [data]
   );
@@ -341,7 +373,8 @@ export function useSpreadsheet(sessionId: string, userId: string) {
 
     const maxCol = Math.max(
       ...rowIndices.map((r) => {
-        const cols = Object.keys(data[r] || {}).map(Number);
+        // Firebase stores keys as strings, so access with string key
+        const cols = Object.keys(data[String(r)] || {}).map(Number);
         return cols.length > 0 ? Math.max(...cols) : 0;
       }),
       0
@@ -363,7 +396,8 @@ export function useSpreadsheet(sessionId: string, userId: string) {
     const rowIndices = Object.keys(data).map(Number);
     const maxCol = Math.max(
       ...rowIndices.map((r) => {
-        const cols = Object.keys(data[r] || {}).map(Number);
+        // Firebase stores keys as strings, so access with string key
+        const cols = Object.keys(data[String(r)] || {}).map(Number);
         return cols.length > 0 ? Math.max(...cols) : 0;
       }),
       0

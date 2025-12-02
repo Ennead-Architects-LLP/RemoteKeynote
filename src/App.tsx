@@ -65,8 +65,27 @@ function AppContent() {
   };
 
   const handleFileUpload = async (data: ParsedData) => {
-    await initializeSpreadsheet(data.rows);
-    showNotification('Spreadsheet loaded successfully', 'success');
+    try {
+      console.log('Handling file upload:', {
+        rowCount: data.rowCount,
+        columnCount: data.columnCount,
+        firstRowSample: data.rows[0]?.slice(0, 5),
+      });
+
+      if (!data.rows || data.rows.length === 0) {
+        showNotification('Uploaded file appears to be empty', 'error');
+        return;
+      }
+
+      await initializeSpreadsheet(data.rows);
+      showNotification('Spreadsheet loaded successfully', 'success');
+    } catch (error) {
+      console.error('File upload error:', error);
+      showNotification(
+        error instanceof Error ? error.message : 'Failed to load spreadsheet',
+        'error'
+      );
+    }
   };
 
   const handleCellValueChanged = useCallback(

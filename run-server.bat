@@ -32,6 +32,13 @@ if exist "%LOCALAPPDATA%\Programs\nodejs\npm.cmd" (
     goto :end
 )
 
+REM Try custom local Node.js path
+if exist "C:\Users\szhang\github\node\npm.cmd" (
+    echo Found npm at: C:\Users\szhang\github\node\npm.cmd
+    "C:\Users\szhang\github\node\npm.cmd" run dev
+    goto :end
+)
+
 echo ERROR: npm not found!
 echo.
 echo Please ensure Node.js is installed and added to your PATH.
