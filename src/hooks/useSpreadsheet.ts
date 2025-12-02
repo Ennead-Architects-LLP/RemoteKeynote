@@ -74,7 +74,11 @@ export function useSpreadsheet(sessionId: string, userId: string) {
         }
       },
       (err) => {
-        console.error('Metadata error:', err);
+        logError(err instanceof Error ? err : new Error(String(err)), {
+          component: 'useSpreadsheet',
+          sessionId,
+          operation: 'loadMetadata',
+        });
       }
     );
 

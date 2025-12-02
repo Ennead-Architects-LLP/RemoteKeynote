@@ -1,8 +1,6 @@
 /**
- * Vercel Serverless Function for logging errors
- * This endpoint can be used to log errors server-side
- * 
- * To use this, uncomment the fetch call in errorLogger.ts
+ * Vercel Serverless Function for logging errors and all console output
+ * All logs from the client will appear in Vercel's function logs
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,10 +11,46 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const errorLog = req.body;
-
+    const logData = req.body;
+    const logLevel = logData.logLevel || 'error';
+    const timestamp = logData.timestamp || new Date().toISOString();
+    
+    // Format log message with context
+    const logMessage = `[${timestamp}] [${logLevel.toUpperCase()}] ${logData.message || 'No message'}`;
+    
     // Log to Vercel's function logs (visible in Vercel dashboard)
-    console.error('Error logged from client:', JSON.stringify(errorLog, null, 2));
+    // Use appropriate console method based on log level
+    const logEntry = {
+      message: logMessage,
+      level: logLevel,
+      stack: logData.stack,
+      componentStack: logData.componentStack,
+      url: logData.url,
+      userAgent: logData.userAgent,
+      environment: logData.environment,
+      sessionId: logData.sessionId,
+      userId: logData.userId,
+      context: logData.additionalContext,
+      logData: logData.logData,
+    };
+
+    // Log with appropriate level
+    switch (logLevel) {
+      case 'error':
+        console.error(JSON.stringify(logEntry, null, 2));
+        break;
+      case 'warn':
+        console.warn(JSON.stringify(logEntry, null, 2));
+        break;
+      case 'info':
+        console.info(JSON.stringify(logEntry, null, 2));
+        break;
+      case 'debug':
+        console.debug(JSON.stringify(logEntry, null, 2));
+        break;
+      default:
+        console.log(JSON.stringify(logEntry, null, 2));
+    }
 
     // Optionally, you could:
     // 1. Store in a database
@@ -26,7 +60,7 @@ export default async function handler(req: any, res: any) {
 
     // Example: Send to external service
     // if (process.env.SENTRY_DSN) {
-    //   await sendToSentry(errorLog);
+    //   await sendToSentry(logData);
     // }
 
     return res.status(200).json({ success: true });
