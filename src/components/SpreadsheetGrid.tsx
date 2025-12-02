@@ -31,10 +31,12 @@ export const SpreadsheetGrid = ({
     columnDefsLength: columnDefs.length,
     firstRow: rowData[0],
     firstRowKeys: rowData[0] ? Object.keys(rowData[0]) : [],
+    firstRowValues: rowData[0] ? Object.values(rowData[0]).slice(0, 5) : [],
     firstColumnDef: columnDefs[0],
     userId,
     timestamp: Date.now(),
   });
+  console.log('[SpreadsheetGrid] STEP 1.1: Full first row data:', JSON.stringify(rowData[0], null, 2));
 
   const gridRef = useRef<AgGridReact>(null);
   const theme = useTheme();
@@ -62,14 +64,69 @@ export const SpreadsheetGrid = ({
       rowCount: rowData.length,
       columnCount: columnDefs.length,
       hasGridApi: !!gridRef.current?.api,
+      rowDataSample: rowData.slice(0, 2),
     });
 
     if (gridRef.current?.api) {
-      console.log('[SpreadsheetGrid] STEP 3.1: Refreshing grid cells...');
-      gridRef.current.api.refreshCells({ force: true });
-      console.log('[SpreadsheetGrid] STEP 3.2: Grid cells refreshed');
+      console.log('[SpreadsheetGrid] STEP 3.1: Updating grid with new data...');
+      // Use setGridOption to update rowData - this is the recommended way for AG Grid
+      gridRef.current.api.setGridOption('rowData', rowData);
+      gridRef.current.api.setGridOption('columnDefs', columnDefs);
+      console.log('[SpreadsheetGrid] STEP 3.2: Grid options updated', {
+        rowDataLength: rowData.length,
+        columnDefsLength: columnDefs.length,
+      });
+      
+      // Force AG Grid to refresh and redraw
+      setTimeout(() => {
+        if (gridRef.current?.api) {
+          console.log('[SpreadsheetGrid] STEP 3.3: Forcing grid refresh...');
+          gridRef.current.api.refreshCells({ force: true });
+          gridRef.current.api.sizeColumnsToFit();
+          const rowCount = gridRef.current.api.getDisplayedRowCount();
+          console.log('[SpreadsheetGrid] STEP 3.4: Grid refreshed', {
+            displayedRowCount: rowCount,
+            expectedRowCount: rowData.length,
+          });
+          
+          // Verify grid is actually rendering cells
+          setTimeout(() => {
+            const displayedRowCount = gridRef.current?.api?.getDisplayedRowCount() || 0;
+            const renderedCells = document.querySelectorAll('.ag-cell');
+            const cellValues = Array.from(renderedCells).slice(0, 5).map(cell => cell.textContent);
+            const headerCells = document.querySelectorAll('.ag-header-cell');
+            const gridContainer = document.querySelector('.spreadsheet-grid-container');
+            const agTheme = document.querySelector('.ag-theme-quartz');
+            
+            console.log('[SpreadsheetGrid] STEP 3.5: Grid rendering verification after data update', {
+              displayedRowCount,
+              renderedCellCount: renderedCells.length,
+              headerCellCount: headerCells.length,
+              firstCellValues: cellValues,
+              gridContainerVisible: gridContainer !== null,
+              gridContainerHeight: gridContainer?.clientHeight,
+              agThemeVisible: agTheme !== null,
+              agThemeHeight: agTheme?.clientHeight,
+              agThemeWidth: agTheme?.clientWidth,
+              hasRows: displayedRowCount > 0,
+              hasCells: renderedCells.length > 0,
+            });
+            
+            // If no cells are rendered but we have data, try more aggressive refresh
+            if (renderedCells.length === 0 && rowData.length > 0 && gridRef.current?.api) {
+              console.log('[SpreadsheetGrid] STEP 3.6: No cells rendered, attempting aggressive refresh...');
+              gridRef.current.api.setRowData(rowData);
+              gridRef.current.api.setColumnDefs(columnDefs);
+              setTimeout(() => {
+                gridRef.current?.api?.refreshCells({ force: true });
+                gridRef.current?.api?.sizeColumnsToFit();
+              }, 100);
+            }
+          }, 300);
+        }
+      }, 50);
     } else {
-      console.log('[SpreadsheetGrid] STEP 3.1: Grid API not available yet, skipping refresh');
+      console.log('[SpreadsheetGrid] STEP 3.1: Grid API not available yet, will update when ready');
     }
   }, [rowData, columnDefs]);
 
@@ -150,13 +207,14 @@ export const SpreadsheetGrid = ({
   });
 
   return (
-    <div className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary }}>
-      <div className="ag-theme-quartz" style={{ height: '100%', width: '100%', minHeight: '400px' }}>
+    <div className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="ag-theme-quartz" style={{ flex: 1, width: '100%', height: '100%', minHeight: '400px' }}>
         <AgGridReact
           ref={gridRef}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
+          domLayout="normal"
           onGridReady={(event: GridReadyEvent) => {
             console.log('[SpreadsheetGrid] STEP 5: AG Grid ready event fired', {
               rowCount: event.api.getDisplayedRowCount(),
@@ -166,6 +224,15 @@ export const SpreadsheetGrid = ({
               gridApiAvailable: !!event.api,
               timestamp: Date.now(),
             });
+            console.log('[SpreadsheetGrid] STEP 5.0: Row data passed to AG Grid:', JSON.stringify(rowData.slice(0, 2), null, 2));
+            console.log('[SpreadsheetGrid] STEP 5.0.1: Column defs passed to AG Grid:', JSON.stringify(columnDefs.slice(0, 3), null, 2));
+            
+            // Ensure data is set via API (sometimes needed for AG Grid to properly render)
+            if (rowData.length > 0) {
+              console.log('[SpreadsheetGrid] STEP 5.0.2: Setting initial row data via API...');
+              event.api.setGridOption('rowData', rowData);
+              event.api.setGridOption('columnDefs', columnDefs);
+            }
             
             try {
               event.api.sizeColumnsToFit();
@@ -178,12 +245,26 @@ export const SpreadsheetGrid = ({
             setTimeout(() => {
               const displayedRowCount = event.api.getDisplayedRowCount();
               const renderedCells = document.querySelectorAll('.ag-cell');
+              const cellValues = Array.from(renderedCells).slice(0, 5).map(cell => cell.textContent);
+              const headerCells = document.querySelectorAll('.ag-header-cell');
               console.log('[SpreadsheetGrid] STEP 5.2: Grid rendering verification', {
                 displayedRowCount,
                 renderedCellCount: renderedCells.length,
+                headerCellCount: headerCells.length,
+                firstCellValues: cellValues,
                 gridContainerVisible: document.querySelector('.spreadsheet-grid-container') !== null,
                 agThemeVisible: document.querySelector('.ag-theme-quartz') !== null,
+                gridHeight: document.querySelector('.ag-theme-quartz')?.clientHeight,
+                gridWidth: document.querySelector('.ag-theme-quartz')?.clientWidth,
+                hasRows: displayedRowCount > 0,
               });
+              
+              // If no cells are rendered, try to force a refresh
+              if (renderedCells.length === 0 && rowData.length > 0) {
+                console.log('[SpreadsheetGrid] STEP 5.3: No cells rendered, forcing refresh...');
+                event.api.refreshCells({ force: true });
+                event.api.sizeColumnsToFit();
+              }
             }, 500);
           }}
           onCellValueChanged={handleCellValueChanged}
@@ -194,7 +275,8 @@ export const SpreadsheetGrid = ({
           animateRows={true}
           enableCellTextSelection={true}
           ensureDomOrder={true}
-          key={`grid-${rowData.length}-${columnDefs.length}`}
+          suppressColumnVirtualisation={false}
+          suppressRowVirtualisation={false}
         />
       </div>
     </div>
