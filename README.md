@@ -61,17 +61,6 @@ cp .env.example .env
 
 4. Open your browser and navigate to [http://localhost:5173](http://localhost:5173)
 
-### Using PowerShell Scripts (Windows)
-
-For automated setup and running:
-```powershell
-.\setup-and-run.ps1
-```
-
-This script will:
-- Check and install dependencies if needed (virtual environment setup)
-- Provide options to run frontend, backend, or both
-
 ## Build for Production
 
 ```bash
@@ -97,7 +86,6 @@ The project is configured for Vercel deployment. Simply connect your repository 
 
 ## Development Notes
 
-- **Virtual Environment**: Node.js uses `node_modules` as the virtual environment, isolating project dependencies
 - **Backend API**: Serverless functions are located in the `/api` directory and run locally using [Vercel CLI](https://vercel.com/docs/cli)
 - **Environment Variables**: Required Firebase configuration variables must be set in `.env` file
   - Get Firebase credentials from [Firebase Console](https://console.firebase.google.com/)

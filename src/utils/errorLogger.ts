@@ -139,7 +139,7 @@ function determineSeverity(error: Error, context?: Record<string, any>): ErrorSe
 /**
  * Determine error category
  */
-function determineCategory(error: Error, context?: Record<string, any>): ErrorCategory {
+function determineCategory(_error: Error, context?: Record<string, any>): ErrorCategory {
   if (context?.type === 'networkError' || context?.type === 'resourceLoadError') {
     return 'network';
   }
