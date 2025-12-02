@@ -22,7 +22,18 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
   const { showNotification } = useNotifications();
 
   const handleFile = async (file: File) => {
+    console.log('[FileUpload] STEP 1: File selected', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
+
     const validation = validateExcelFile(file);
+    console.log('[FileUpload] STEP 2: File validation', {
+      valid: validation.valid,
+      error: validation.error,
+    });
+
     if (!validation.valid) {
       showNotification(validation.error || 'Invalid file', 'error');
       return;
@@ -30,11 +41,23 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
 
     setIsProcessing(true);
     try {
+      console.log('[FileUpload] STEP 3: Starting file parsing...');
       const parsedData = await parseExcelFile(file);
+      console.log('[FileUpload] STEP 4: File parsed successfully', {
+        rowCount: parsedData.rowCount,
+        columnCount: parsedData.columnCount,
+        firstRowSample: parsedData.rows[0]?.slice(0, 5),
+        totalRows: parsedData.rows.length,
+      });
+
+      console.log('[FileUpload] STEP 5: Calling onUpload callback...');
       onUpload(parsedData);
+      console.log('[FileUpload] STEP 6: onUpload callback completed');
+      
       showNotification('File uploaded successfully', 'success');
       onClose();
     } catch (error) {
+      console.error('[FileUpload] ERROR: File parsing failed', error);
       showNotification('Failed to parse file. Please try again.', 'error');
       logError(error instanceof Error ? error : new Error('Failed to parse Excel file'), {
         component: 'FileUpload',
@@ -43,6 +66,7 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
       });
     } finally {
       setIsProcessing(false);
+      console.log('[FileUpload] STEP 7: File processing completed');
     }
   };
 

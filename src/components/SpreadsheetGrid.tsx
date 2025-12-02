@@ -26,11 +26,22 @@ export const SpreadsheetGrid = ({
   lockedCells,
   userId,
 }: SpreadsheetGridProps) => {
+  console.log('[SpreadsheetGrid] STEP 1: Component render', {
+    rowDataLength: rowData.length,
+    columnDefsLength: columnDefs.length,
+    firstRow: rowData[0],
+    firstRowKeys: rowData[0] ? Object.keys(rowData[0]) : [],
+    firstColumnDef: columnDefs[0],
+    userId,
+    timestamp: Date.now(),
+  });
+
   const gridRef = useRef<AgGridReact>(null);
   const theme = useTheme();
   const { getCellLockedBy } = useRaceConditionHandler(userId);
 
   useEffect(() => {
+    console.log('[SpreadsheetGrid] STEP 2: Applying theme colors');
     // Apply custom theme colors
     const root = document.documentElement;
     root.style.setProperty('--ag-background-color', theme.colors.bg.primary);
@@ -42,16 +53,23 @@ export const SpreadsheetGrid = ({
     root.style.setProperty('--ag-border-color', theme.colors.border.default);
     root.style.setProperty('--ag-input-border-color', theme.colors.border.default);
     root.style.setProperty('--ag-input-focus-border-color', theme.colors.purple[600]);
+    console.log('[SpreadsheetGrid] STEP 2.1: Theme colors applied');
   }, [theme]);
 
   // Force grid refresh when data changes
   useEffect(() => {
+    console.log('[SpreadsheetGrid] STEP 3: Data change detected', {
+      rowCount: rowData.length,
+      columnCount: columnDefs.length,
+      hasGridApi: !!gridRef.current?.api,
+    });
+
     if (gridRef.current?.api) {
-      console.log('SpreadsheetGrid: Data changed, refreshing grid', {
-        rowCount: rowData.length,
-        columnCount: columnDefs.length,
-      });
+      console.log('[SpreadsheetGrid] STEP 3.1: Refreshing grid cells...');
       gridRef.current.api.refreshCells({ force: true });
+      console.log('[SpreadsheetGrid] STEP 3.2: Grid cells refreshed');
+    } else {
+      console.log('[SpreadsheetGrid] STEP 3.1: Grid API not available yet, skipping refresh');
     }
   }, [rowData, columnDefs]);
 
@@ -125,6 +143,12 @@ export const SpreadsheetGrid = ({
     },
   };
 
+  console.log('[SpreadsheetGrid] STEP 4: Rendering JSX', {
+    rowDataLength: rowData.length,
+    columnDefsLength: columnDefs.length,
+    willRenderGrid: rowData.length > 0 && columnDefs.length > 0,
+  });
+
   return (
     <div className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary }}>
       <div className="ag-theme-quartz" style={{ height: '100%', width: '100%', minHeight: '400px' }}>
@@ -134,11 +158,33 @@ export const SpreadsheetGrid = ({
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           onGridReady={(event: GridReadyEvent) => {
-            console.log('AG Grid ready:', {
+            console.log('[SpreadsheetGrid] STEP 5: AG Grid ready event fired', {
               rowCount: event.api.getDisplayedRowCount(),
               columnCount: columnDefs.length,
+              rowDataLength: rowData.length,
+              columnDefsLength: columnDefs.length,
+              gridApiAvailable: !!event.api,
+              timestamp: Date.now(),
             });
-            event.api.sizeColumnsToFit();
+            
+            try {
+              event.api.sizeColumnsToFit();
+              console.log('[SpreadsheetGrid] STEP 5.1: Columns sized to fit');
+            } catch (error) {
+              console.error('[SpreadsheetGrid] ERROR: Failed to size columns', error);
+            }
+
+            // Verify grid is actually rendering
+            setTimeout(() => {
+              const displayedRowCount = event.api.getDisplayedRowCount();
+              const renderedCells = document.querySelectorAll('.ag-cell');
+              console.log('[SpreadsheetGrid] STEP 5.2: Grid rendering verification', {
+                displayedRowCount,
+                renderedCellCount: renderedCells.length,
+                gridContainerVisible: document.querySelector('.spreadsheet-grid-container') !== null,
+                agThemeVisible: document.querySelector('.ag-theme-quartz') !== null,
+              });
+            }, 500);
           }}
           onCellValueChanged={handleCellValueChanged}
           onSelectionChanged={handleSelectionChanged}

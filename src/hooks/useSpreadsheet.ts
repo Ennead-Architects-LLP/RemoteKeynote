@@ -35,24 +35,35 @@ export function useSpreadsheet(sessionId: string, userId: string) {
 
   // Listen to Firebase changes
   useEffect(() => {
+    console.log('[useSpreadsheet] Setting up Firebase listeners', { sessionId });
     setLoading(true);
 
     const unsubscribeData = onValue(
       dataRefPath,
       (snapshot) => {
         const firebaseData = snapshot.val() || {};
-        console.log('Firebase data received:', {
+        console.log('[useSpreadsheet] Firebase data listener triggered', {
           hasData: Object.keys(firebaseData).length > 0,
           rowCount: Object.keys(firebaseData).length,
           firstRowKeys: Object.keys(firebaseData).slice(0, 5),
           sampleRow: firebaseData[Object.keys(firebaseData)[0]],
+          timestamp: Date.now(),
         });
+        
+        console.log('[useSpreadsheet] Updating data state...');
         setData(firebaseData);
         setLoading(false);
         setError(null);
+        
+        // Log state after update (will be available in next render)
+        setTimeout(() => {
+          console.log('[useSpreadsheet] Data state updated, checking grid data...');
+          // This will be logged in getGridData/getColumnDefs
+        }, 100);
       },
       (err) => {
         const errorMessage = err.message || 'Failed to load spreadsheet data';
+        console.error('[useSpreadsheet] Firebase listener error', err);
         setError(errorMessage);
         setLoading(false);
         logError(err instanceof Error ? err : new Error(errorMessage), {
@@ -138,8 +149,16 @@ export function useSpreadsheet(sessionId: string, userId: string) {
   const initializeSpreadsheet = useCallback(
     async (rows: (string | number | null)[][]) => {
       try {
+        console.log('[useSpreadsheet] STEP 1: initializeSpreadsheet called', {
+          rowCount: rows?.length || 0,
+          columnCount: rows?.[0]?.length || 0,
+          sessionId,
+          userId,
+        });
+
         if (!rows || rows.length === 0) {
           const errorMsg = 'No data to initialize. Rows array is empty.';
+          console.error('[useSpreadsheet] ERROR:', errorMsg);
           setError(errorMsg);
           logError(new Error(errorMsg), {
             component: 'useSpreadsheet',
@@ -149,6 +168,7 @@ export function useSpreadsheet(sessionId: string, userId: string) {
           return;
         }
 
+        console.log('[useSpreadsheet] STEP 2: Transforming rows to SpreadsheetData format...');
         const newData: SpreadsheetData = {};
         rows.forEach((row, rowIndex) => {
           newData[String(rowIndex)] = {};
@@ -163,30 +183,38 @@ export function useSpreadsheet(sessionId: string, userId: string) {
           });
         });
 
-        console.log('Initializing spreadsheet with data:', {
+        console.log('[useSpreadsheet] STEP 3: Data transformation complete', {
           rowCount: rows.length,
           columnCount: rows[0]?.length || 0,
           dataKeys: Object.keys(newData).slice(0, 5),
+          firstRowKeys: Object.keys(newData['0'] || {}).slice(0, 5),
+          firstRowSample: newData['0'],
         });
 
+        console.log('[useSpreadsheet] STEP 4: Writing data to Firebase...');
         await set(dataRefPath, newData);
+        console.log('[useSpreadsheet] STEP 5: Data written to Firebase successfully');
+
+        console.log('[useSpreadsheet] STEP 6: Writing metadata to Firebase...');
         await set(metadataRefPath, {
           name: 'Uploaded Spreadsheet',
           createdAt: Date.now(),
           lastModified: Date.now(),
         });
+        console.log('[useSpreadsheet] STEP 7: Metadata written to Firebase successfully');
 
-        console.log('Spreadsheet initialized successfully', {
+        console.log('[useSpreadsheet] STEP 8: Updating local state immediately...');
+        // Also update local state immediately to avoid waiting for Firebase listener
+        setData(newData);
+        setLoading(false);
+        console.log('[useSpreadsheet] STEP 9: Local state updated', {
           newDataKeys: Object.keys(newData),
           firstRowSample: newData['0'],
           totalRows: Object.keys(newData).length,
         });
-        
-        // Also update local state immediately to avoid waiting for Firebase listener
-        setData(newData);
-        setLoading(false);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Failed to initialize spreadsheet';
+        console.error('[useSpreadsheet] ERROR: Initialization failed', error);
         setError(errorMsg);
         logError(error instanceof Error ? error : new Error(errorMsg), {
           component: 'useSpreadsheet',
@@ -376,16 +404,28 @@ export function useSpreadsheet(sessionId: string, userId: string) {
 
   // Convert data to grid format for AG Grid
   const getGridData = useCallback((): any[] => {
+    console.log('[getGridData] STEP 1: Called', {
+      dataKeys: Object.keys(data).slice(0, 5),
+      dataSize: Object.keys(data).length,
+      timestamp: Date.now(),
+    });
+
     const rows: any[] = [];
     const rowIndices = Object.keys(data)
       .map(Number)
       .sort((a, b) => a - b);
 
+    console.log('[getGridData] STEP 2: Row indices calculated', {
+      rowIndicesCount: rowIndices.length,
+      rowIndices: rowIndices.slice(0, 5),
+    });
+
     if (rowIndices.length === 0) {
-      console.log('getGridData: No data, returning empty row');
+      console.log('[getGridData] STEP 3: No data, returning empty row');
       return [{ col0: null }];
     }
 
+    console.log('[getGridData] STEP 3: Calculating max column...');
     const maxCol = Math.max(
       ...rowIndices.map((r) => {
         // Firebase stores keys as strings, so access with string key
@@ -395,32 +435,60 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       0
     );
 
-    console.log('getGridData:', {
+    console.log('[getGridData] STEP 4: Max column calculated', {
       rowCount: rowIndices.length,
       maxCol,
       firstRowSample: rowIndices.length > 0 ? data[String(rowIndices[0])] : null,
     });
 
-    rowIndices.forEach((rowIndex) => {
+    console.log('[getGridData] STEP 5: Transforming rows to AG Grid format...');
+    rowIndices.forEach((rowIndex, idx) => {
       const row: any = {};
       for (let col = 0; col <= maxCol; col++) {
         row[`col${col}`] = getCellValue(rowIndex, col);
       }
       rows.push(row);
+      
+      if (idx === 0) {
+        console.log('[getGridData] STEP 5.1: First row transformed', {
+          rowIndex,
+          rowKeys: Object.keys(row),
+          rowValues: Object.values(row).slice(0, 5),
+        });
+      }
     });
 
-    console.log('getGridData result:', {
+    console.log('[getGridData] STEP 6: Transformation complete', {
       rowCount: rows.length,
       firstRow: rows[0],
       firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
+      firstRowValues: rows[0] ? Object.values(rows[0]).slice(0, 5) : [],
     });
 
-    return rows.length > 0 ? rows : [{ col0: null }];
+    const result = rows.length > 0 ? rows : [{ col0: null }];
+    console.log('[getGridData] STEP 7: Returning result', {
+      resultLength: result.length,
+      resultType: result.length > 0 ? 'data' : 'empty',
+    });
+
+    return result;
   }, [data, getCellValue]);
 
   // Get column definitions for AG Grid
   const getColumnDefs = useCallback((): any[] => {
+    console.log('[getColumnDefs] STEP 1: Called', {
+      dataKeys: Object.keys(data).slice(0, 5),
+      dataSize: Object.keys(data).length,
+      hasMetadata: !!metadata,
+      timestamp: Date.now(),
+    });
+
     const rowIndices = Object.keys(data).map(Number);
+    console.log('[getColumnDefs] STEP 2: Row indices', {
+      rowIndicesCount: rowIndices.length,
+      rowIndices: rowIndices.slice(0, 5),
+    });
+
     const maxCol = Math.max(
       ...rowIndices.map((r) => {
         // Firebase stores keys as strings, so access with string key
@@ -430,10 +498,15 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       0
     );
 
+    console.log('[getColumnDefs] STEP 3: Max column calculated', {
+      maxCol,
+    });
+
+    console.log('[getColumnDefs] STEP 4: Generating column definitions...');
     const cols: any[] = [];
     for (let col = 0; col <= maxCol; col++) {
       const colWidth = metadata?.columnWidths?.[col];
-      cols.push({
+      const colDef = {
         field: `col${col}`,
         headerName: String.fromCharCode(65 + (col % 26)) + (col >= 26 ? Math.floor(col / 26) : ''),
         editable: true,
@@ -441,10 +514,27 @@ export function useSpreadsheet(sessionId: string, userId: string) {
         resizable: true,
         sortable: false,
         filter: false,
-      });
+      };
+      cols.push(colDef);
+      
+      if (col === 0) {
+        console.log('[getColumnDefs] STEP 4.1: First column definition', colDef);
+      }
     }
 
-    return cols.length > 0 ? cols : [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
+    console.log('[getColumnDefs] STEP 5: Column definitions generated', {
+      columnCount: cols.length,
+      firstColumn: cols[0],
+      allColumns: cols.map(c => c.field),
+    });
+
+    const result = cols.length > 0 ? cols : [{ field: 'col0', headerName: 'A', editable: true, width: 120 }];
+    console.log('[getColumnDefs] STEP 6: Returning result', {
+      resultLength: result.length,
+      resultType: result.length > 0 ? 'columns' : 'default',
+    });
+
+    return result;
   }, [data, metadata]);
 
   return {

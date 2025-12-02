@@ -87,21 +87,43 @@ function AppContent() {
 
   const handleFileUpload = async (data: ParsedData) => {
     try {
-      console.log('Handling file upload:', {
+      console.log('[App] STEP 1: handleFileUpload called', {
         rowCount: data.rowCount,
         columnCount: data.columnCount,
         firstRowSample: data.rows[0]?.slice(0, 5),
+        totalRows: data.rows.length,
+        sessionId,
+        userId,
       });
 
       if (!data.rows || data.rows.length === 0) {
+        console.error('[App] ERROR: No rows in uploaded data');
         showNotification('Uploaded file appears to be empty', 'error');
         return;
       }
 
+      console.log('[App] STEP 2: Calling initializeSpreadsheet...');
       await initializeSpreadsheet(data.rows);
+      console.log('[App] STEP 3: initializeSpreadsheet completed');
+
+      // Wait a bit for Firebase listener to update
+      console.log('[App] STEP 4: Waiting for data propagation...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check data state
+      const currentGridData = getGridData();
+      const currentColumnDefs = getColumnDefs();
+      console.log('[App] STEP 5: Data state after initialization', {
+        gridDataLength: currentGridData.length,
+        columnDefsLength: currentColumnDefs.length,
+        hasData: currentGridData.length > 0 && currentColumnDefs.length > 0,
+        firstRow: currentGridData[0],
+        firstColumnDef: currentColumnDefs[0],
+      });
+
       showNotification('Spreadsheet loaded successfully', 'success');
     } catch (error) {
-      console.error('File upload error:', error);
+      console.error('[App] ERROR: File upload failed', error);
       showNotification(
         error instanceof Error ? error.message : 'Failed to load spreadsheet',
         'error'
@@ -213,19 +235,34 @@ function AppContent() {
     );
   }
 
+  console.log('[App] STEP 1: App render - calling getGridData and getColumnDefs...');
   const gridData = getGridData();
   const columnDefs = getColumnDefs();
   const lockedCells = getAllLockedCells();
+  
   // Show grid if we have rows (even if empty) or if we have column definitions
   const hasData = gridData.length > 0 && columnDefs.length > 0;
   
-  console.log('App render - grid state:', {
+  console.log('[App] STEP 2: Grid state calculated', {
     gridDataLength: gridData.length,
     columnDefsLength: columnDefs.length,
     hasData,
     firstRow: gridData[0],
     firstRowKeys: gridData[0] ? Object.keys(gridData[0]) : [],
+    firstRowValues: gridData[0] ? Object.values(gridData[0]).slice(0, 5) : [],
+    firstColumnDef: columnDefs[0],
     loading,
+    error,
+    sessionId,
+    userId,
+  });
+
+  console.log('[App] STEP 3: Conditional rendering decision', {
+    willRenderGrid: hasData,
+    willShowEmptyState: !hasData,
+    reason: hasData 
+      ? 'hasData is true - grid will render' 
+      : `hasData is false - gridData.length=${gridData.length}, columnDefs.length=${columnDefs.length}`,
   });
 
   return (
