@@ -6,12 +6,20 @@ Write-Host "RemoteKeynote - Setup and Run" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Add portable Node.js to PATH if it exists
+$portableNodePath = "C:\Users\szhang\github\portable_node"
+if (Test-Path $portableNodePath) {
+    $env:PATH = "$portableNodePath;$env:PATH"
+    Write-Host "Added portable Node.js to PATH: $portableNodePath" -ForegroundColor Cyan
+}
+
 # Check if node_modules exists (virtual environment)
 if (-not (Test-Path "node_modules")) {
     Write-Host "Virtual environment (node_modules) not found. Installing dependencies..." -ForegroundColor Yellow
     
     # Try to find npm
     $npmPaths = @(
+        "$portableNodePath\npm.cmd",
         "C:\Program Files\nodejs\npm.cmd",
         "$env:APPDATA\npm\npm.cmd",
         "$env:LOCALAPPDATA\Programs\nodejs\npm.cmd",
@@ -71,6 +79,7 @@ if ([string]::IsNullOrWhiteSpace($choice)) {
 
 # Try to find npm
 $npmPaths = @(
+    "$portableNodePath\npm.cmd",
     "C:\Program Files\nodejs\npm.cmd",
     "$env:APPDATA\npm\npm.cmd",
     "$env:LOCALAPPDATA\Programs\nodejs\npm.cmd",

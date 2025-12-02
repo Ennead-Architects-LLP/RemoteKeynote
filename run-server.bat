@@ -39,6 +39,14 @@ if exist "C:\Users\szhang\github\node\npm.cmd" (
     goto :end
 )
 
+REM Try portable Node.js path
+if exist "C:\Users\szhang\github\portable_node\npm.cmd" (
+    echo Found npm at: C:\Users\szhang\github\portable_node\npm.cmd
+    set PATH=%PATH%;C:\Users\szhang\github\portable_node
+    "C:\Users\szhang\github\portable_node\npm.cmd" run dev
+    goto :end
+)
+
 echo ERROR: npm not found!
 echo.
 echo Please ensure Node.js is installed and added to your PATH.

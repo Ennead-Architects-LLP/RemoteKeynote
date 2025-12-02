@@ -11,8 +11,16 @@ if (-not (Test-Path "node_modules")) {
     exit 1
 }
 
+# Add portable Node.js to PATH if it exists
+$portableNodePath = "C:\Users\szhang\github\portable_node"
+if (Test-Path $portableNodePath) {
+    $env:PATH = "$portableNodePath;$env:PATH"
+    Write-Host "Added portable Node.js to PATH: $portableNodePath" -ForegroundColor Cyan
+}
+
 # Try to find npm in common locations
 $npmPaths = @(
+    "$portableNodePath\npm.cmd",
     "C:\Program Files\nodejs\npm.cmd",
     "$env:APPDATA\npm\npm.cmd",
     "$env:LOCALAPPDATA\Programs\nodejs\npm.cmd",
