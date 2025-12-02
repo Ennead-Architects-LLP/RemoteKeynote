@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent } from 'react';
+import { useState, useRef, DragEvent, useEffect } from 'react';
 import { Modal } from './Modal';
 import { useTheme } from '../context/ThemeContext';
 import { useNotifications } from './NotificationSystem';
@@ -17,6 +17,7 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleFileRef = useRef<((file: File) => Promise<void>) | null>(null);
   const theme = useTheme();
   const { showNotification } = useNotifications();
 
@@ -44,6 +45,9 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
       setIsProcessing(false);
     }
   };
+
+  // Keep handleFile ref updated
+  handleFileRef.current = handleFile;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -75,6 +79,22 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
   const handleClick = () => {
     fileInputRef.current?.click();
   };
+
+  // Temporary helper for browser agent testing - exposes handleFile globally
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isOpen) {
+      (window as any).__uploadFile = async (file: File) => {
+        if (handleFileRef.current) {
+          await handleFileRef.current(file);
+        }
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__uploadFile;
+      }
+    };
+  }, [isOpen]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Upload Excel File" size="medium">

@@ -75,22 +75,22 @@ const NotificationItem = ({ notification, onRemove }: NotificationItemProps) => 
       case 'success':
         return {
           ...baseStyle,
-          borderLeftColor: theme.colors.status.success,
+          borderColor: theme.colors.status.success,
         };
       case 'error':
         return {
           ...baseStyle,
-          borderLeftColor: theme.colors.status.error,
+          borderColor: theme.colors.status.error,
         };
       case 'warning':
         return {
           ...baseStyle,
-          borderLeftColor: theme.colors.status.warning,
+          borderColor: theme.colors.status.warning,
         };
       case 'info':
         return {
           ...baseStyle,
-          borderLeftColor: theme.colors.status.info,
+          borderColor: theme.colors.status.info,
         };
       default:
         return baseStyle;

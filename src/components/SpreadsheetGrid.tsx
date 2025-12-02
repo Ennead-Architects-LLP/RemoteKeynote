@@ -44,6 +44,17 @@ export const SpreadsheetGrid = ({
     root.style.setProperty('--ag-input-focus-border-color', theme.colors.purple[600]);
   }, [theme]);
 
+  // Force grid refresh when data changes
+  useEffect(() => {
+    if (gridRef.current?.api) {
+      console.log('SpreadsheetGrid: Data changed, refreshing grid', {
+        rowCount: rowData.length,
+        columnCount: columnDefs.length,
+      });
+      gridRef.current.api.refreshCells({ force: true });
+    }
+  }, [rowData, columnDefs]);
+
   const handleCellValueChanged = useCallback(
     (event: CellValueChangedEvent) => {
       if (!event.data || event.colDef?.field === undefined) return;
@@ -116,13 +127,17 @@ export const SpreadsheetGrid = ({
 
   return (
     <div className="spreadsheet-grid-container" style={{ backgroundColor: theme.colors.bg.primary }}>
-      <div className="ag-theme-quartz" style={{ height: '100%', width: '100%' }}>
+      <div className="ag-theme-quartz" style={{ height: '100%', width: '100%', minHeight: '400px' }}>
         <AgGridReact
           ref={gridRef}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           onGridReady={(event: GridReadyEvent) => {
+            console.log('AG Grid ready:', {
+              rowCount: event.api.getDisplayedRowCount(),
+              columnCount: columnDefs.length,
+            });
             event.api.sizeColumnsToFit();
           }}
           onCellValueChanged={handleCellValueChanged}
@@ -133,6 +148,7 @@ export const SpreadsheetGrid = ({
           animateRows={true}
           enableCellTextSelection={true}
           ensureDomOrder={true}
+          key={`grid-${rowData.length}-${columnDefs.length}`}
         />
       </div>
     </div>

@@ -41,6 +41,12 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       dataRefPath,
       (snapshot) => {
         const firebaseData = snapshot.val() || {};
+        console.log('Firebase data received:', {
+          hasData: Object.keys(firebaseData).length > 0,
+          rowCount: Object.keys(firebaseData).length,
+          firstRowKeys: Object.keys(firebaseData).slice(0, 5),
+          sampleRow: firebaseData[Object.keys(firebaseData)[0]],
+        });
         setData(firebaseData);
         setLoading(false);
         setError(null);
@@ -170,7 +176,15 @@ export function useSpreadsheet(sessionId: string, userId: string) {
           lastModified: Date.now(),
         });
 
-        console.log('Spreadsheet initialized successfully');
+        console.log('Spreadsheet initialized successfully', {
+          newDataKeys: Object.keys(newData),
+          firstRowSample: newData['0'],
+          totalRows: Object.keys(newData).length,
+        });
+        
+        // Also update local state immediately to avoid waiting for Firebase listener
+        setData(newData);
+        setLoading(false);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Failed to initialize spreadsheet';
         setError(errorMsg);
@@ -368,6 +382,7 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       .sort((a, b) => a - b);
 
     if (rowIndices.length === 0) {
+      console.log('getGridData: No data, returning empty row');
       return [{ col0: null }];
     }
 
@@ -380,12 +395,24 @@ export function useSpreadsheet(sessionId: string, userId: string) {
       0
     );
 
+    console.log('getGridData:', {
+      rowCount: rowIndices.length,
+      maxCol,
+      firstRowSample: rowIndices.length > 0 ? data[String(rowIndices[0])] : null,
+    });
+
     rowIndices.forEach((rowIndex) => {
       const row: any = {};
       for (let col = 0; col <= maxCol; col++) {
         row[`col${col}`] = getCellValue(rowIndex, col);
       }
       rows.push(row);
+    });
+
+    console.log('getGridData result:', {
+      rowCount: rows.length,
+      firstRow: rows[0],
+      firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
     });
 
     return rows.length > 0 ? rows : [{ col0: null }];
