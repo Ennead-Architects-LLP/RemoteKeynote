@@ -407,21 +407,21 @@ function AppContent() {
                              gridData[0]?.col0 === null;
   
   // If we recently had a successful upload (within 10 seconds), be more lenient
-  const recentUpload = uploadSuccessTime && (Date.now() - uploadSuccessTime < 10000);
+  const recentUpload: boolean = uploadSuccessTime !== null && (Date.now() - uploadSuccessTime < 10000);
   
   // More lenient: accept if we have rows and columns, OR if we recently uploaded
   // This handles timing issues where data exists but check is too strict
-  const hasData = gridData.length > 0 && 
+  const hasData: boolean = gridData.length > 0 && 
                   columnDefs.length > 0 && 
                   (!hasEmptyDefaultRow || (recentUpload && gridData.length >= 1 && columnDefs.length > 1));
   
   // Additional check: if we have multiple rows or columns, definitely show grid
-  const hasMultipleRows = gridData.length > 1;
-  const hasMultipleCols = columnDefs.length > 1;
-  const definitelyHasData = hasMultipleRows || hasMultipleCols;
+  const hasMultipleRows: boolean = gridData.length > 1;
+  const hasMultipleCols: boolean = columnDefs.length > 1;
+  const definitelyHasData: boolean = hasMultipleRows || hasMultipleCols;
   
   // Final decision: show grid if hasData OR definitely has data OR recent upload with any data
-  const shouldRenderGrid = hasData || definitelyHasData || (recentUpload && gridData.length > 0 && columnDefs.length > 0);
+  const shouldRenderGrid: boolean = hasData || definitelyHasData || (recentUpload && gridData.length > 0 && columnDefs.length > 0);
   
   // Count rows with actual data
   const rowsWithData = gridData.filter(row => 

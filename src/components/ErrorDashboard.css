@@ -221,3 +221,148 @@
   line-height: 1.8;
 }
 
+/* Mobile optimizations */
+@media (max-width: 1024px) {
+  .error-dashboard {
+    width: 95vw;
+    height: 95vh;
+  }
+
+  .error-dashboard-details {
+    width: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .error-dashboard {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .error-dashboard-header {
+    padding: 1rem;
+  }
+
+  .error-dashboard-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .error-dashboard-close {
+    font-size: 1.75rem;
+    padding: 0.625rem;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .error-dashboard-toolbar {
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .error-dashboard-filters {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .filter-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .error-dashboard-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .error-dashboard-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .error-dashboard-content {
+    flex-direction: column;
+  }
+
+  .error-dashboard-list {
+    max-height: 50%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .error-dashboard-details {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 50%;
+  }
+
+  .error-dashboard-details-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .error-dashboard-details-header h3 {
+    font-size: 1rem;
+  }
+
+  .error-dashboard-details-content {
+    padding: 1rem;
+  }
+
+  .error-dashboard-item {
+    padding: 0.875rem;
+  }
+
+  .error-dashboard-message {
+    font-size: 0.8125rem;
+  }
+
+  .error-dashboard-detail-section pre {
+    font-size: 0.8125rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .error-dashboard-header {
+    padding: 0.75rem;
+  }
+
+  .error-dashboard-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .error-dashboard-toolbar {
+    padding: 0.5rem;
+  }
+
+  .filter-btn {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.75rem;
+    min-width: 60px;
+  }
+
+  .error-dashboard-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .error-dashboard-item {
+    padding: 0.75rem;
+  }
+
+  .error-dashboard-severity,
+  .error-dashboard-time,
+  .error-dashboard-category {
+    font-size: 0.6875rem;
+  }
+
+  .error-dashboard-message {
+    font-size: 0.75rem;
+  }
+}
+
