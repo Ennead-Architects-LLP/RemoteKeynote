@@ -42,6 +42,10 @@ export const SpreadsheetGrid = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
   const { getCellLockedBy } = useRaceConditionHandler(userId);
+  
+  // Touch gesture support
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   useEffect(() => {
     console.log('[SpreadsheetGrid] STEP 2: Applying theme colors');
@@ -214,6 +218,68 @@ export const SpreadsheetGrid = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     lockedCells.size;
   }, [lockedCells]);
+
+  // Touch gesture handlers for improved mobile experience
+  useEffect(() => {
+    if (!isTouchDevice || !containerRef.current) return;
+
+    const container = containerRef.current;
+    let scrollTimeout: NodeJS.Timeout;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        touchStartRef.current = {
+          x: touch.clientX,
+          y: touch.clientY,
+          time: Date.now(),
+        };
+      }
+    };
+
+    const handleTouchMove = () => {
+      // Enable smooth scrolling during touch
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      container.style.scrollBehavior = 'auto';
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      // Add momentum to scrolling after touch ends
+      scrollTimeout = setTimeout(() => {
+        container.style.scrollBehavior = 'smooth';
+      }, 100);
+
+      // Handle quick swipes for navigation
+      if (touchStartRef.current && e.changedTouches.length === 1) {
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - touchStartRef.current.x;
+        const deltaY = touch.clientY - touchStartRef.current.y;
+        const deltaTime = Date.now() - touchStartRef.current.time;
+
+        // Detect swipe gestures (fast movement over short time)
+        const isSwipe = deltaTime < 300 && (Math.abs(deltaX) > 50 || Math.abs(deltaY) > 50);
+
+        if (isSwipe) {
+          console.log('[SpreadsheetGrid] Swipe detected', { deltaX, deltaY, deltaTime });
+          // Swipe gestures are handled naturally by AG Grid's scrolling
+          // We just log for debugging purposes
+        }
+      }
+
+      touchStartRef.current = null;
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, [isTouchDevice]);
 
   const defaultColDef: ColDef = {
     editable: true,
@@ -401,6 +467,10 @@ export const SpreadsheetGrid = ({
           ensureDomOrder={true}
           suppressColumnVirtualisation={false}
           suppressRowVirtualisation={false}
+          suppressMovableColumns={isTouchDevice}
+          suppressCellFocus={false}
+          enableBrowserTooltips={true}
+          suppressTouch={false}
         />
       </div>
     </div>

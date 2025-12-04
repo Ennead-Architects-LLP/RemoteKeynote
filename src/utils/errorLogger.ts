@@ -462,8 +462,8 @@ export function logConsoleOutput(level: 'log' | 'warn' | 'info' | 'debug', ...ar
 
   // Determine severity based on log level
   let severity: ErrorSeverity = 'info';
-  if (level === 'error' || level === 'warn') {
-    severity = level === 'error' ? 'error' : 'warning';
+  if (level === 'warn') {
+    severity = 'warning';
   } else if (level === 'log' || level === 'info') {
     severity = 'info';
   } else if (level === 'debug') {

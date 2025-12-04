@@ -54,14 +54,9 @@ export const FileUpload = ({ isOpen, onClose, onUpload }: FileUploadProps) => {
 
       console.log('[FileUpload] STEP 5: Calling onUpload callback...');
       
-      // Handle async callback properly - onUpload may be async
+      // Call the upload callback
       try {
-        const uploadResult = onUpload(parsedData);
-        
-        // If onUpload returns a Promise, wait for it
-        if (uploadResult instanceof Promise) {
-          await uploadResult;
-        }
+        onUpload(parsedData);
         
         console.log('[FileUpload] STEP 6: onUpload callback completed');
         
