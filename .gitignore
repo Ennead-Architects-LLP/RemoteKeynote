@@ -32,3 +32,6 @@ dist-ssr
 # Debug folder
 DEBUG/
 
+
+.vercel
+.env*.local
